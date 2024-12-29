@@ -2,14 +2,30 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require("cors");
 const WebSocket = require("ws");
+const helmet = require('helmet');  // Include helmet
 const menuRoutes = require('./routes/menu'); 
 const orderRoutes = require('./routes/order');
 const salesRoutes = require('./routes/sales')
 const MenuItems = require('./routes/menuitems')
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000' , 'https://eleven-windows-cheat.loca.lt' ], // Adjust to your frontend domain or localhost
+}));
 app.use(bodyParser.json());
+
+// Use Helmet to set CSP
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "https://67f3-2409-40c1-5004-fc74-37ee-99ef-5e2b-10ad.ngrok-free.app/api/add-menuitem"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'"],
+      // Add any other resource types if necessary (like fonts, media, etc.)
+    },
+  })
+);
 
 // Initialize WebSocket server
 const wss = new WebSocket.Server({ port: 5001 });
