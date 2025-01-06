@@ -13,8 +13,8 @@
 /* Grid layout for the menu items (horizontal) */
 .menu-list {
   display: flex;  /* Use flexbox to arrange items horizontally */
-  overflow-x: auto;  /* Allow horizontal scrolling if items overflow */
-  gap: 20px;
+  flex-wrap: wrap; /* Allow items to wrap when necessary */
+  gap: 30px;
   justify-content: flex-start;  /* Align items to the left */
   margin-top: 20px;
   padding-bottom: 20px;

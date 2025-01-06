@@ -1,6 +1,7 @@
 // src/App.js
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import BarChart from "./components/BarChart";
 import Header from "./components/Header";
 import Menu from "./components/MenuPage";
 import AddOrder from "./components/AddOrder";
@@ -16,6 +17,7 @@ import MenuItemAdd from "./components/MenuItemAdd"; // Import the new Sales comp
 
 function App() {
   return (
+    
     <Router>
       <Header />
       <Routes>

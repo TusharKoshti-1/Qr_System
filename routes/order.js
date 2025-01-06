@@ -30,7 +30,7 @@ router.post('/api/orders', (req, res) => {
 
 // Fetch all orders
 router.get('/api/orders', (req, res) => {
-  const query = 'SELECT * FROM orders WHERE status = "Pending" ORDER BY created_at DESC';
+  const query = 'SELECT * FROM orders WHERE status = "Pending" ORDER BY created_on DESC';
   connection.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching orders:', err);
