@@ -13,7 +13,7 @@
   padding: 10px 15px;
   border: none;
   border-radius: 5px;
-  background-color: #f0f0f0;
+  background-color: #6bd4c6;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -33,27 +33,79 @@
   margin-top: 20px;
 }
 
-.sales-card {
-  background-color: #e9c4f5;
+.sales-cardtotal-sales { 
+  background-color: #fabdc6;
   border-radius: 8px;
   padding: 20px;
+  padding-right: 70px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
+  /* display: flex; */
+  width: max-content;
+  height: max-content;
+  align-items: center;
+}
+.sales-cardtotal-orders { 
+  background-color: #f4f5c4;
+  border-radius: 8px;
+  padding: 20px;
+  padding-right: 70px;
+
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* display: flex; */
+  width: max-content;
+  height: max-content;
+  align-items: center;
+}
+.sales-cardtotal-sold { 
+  background-color: #c8f5c4;
+  border-radius: 8px;
+  padding: 20px;
+  padding-right: 70px;
+
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* display: flex; */
+  width: max-content;
+  height: max-content;
+  align-items: center;
+}
+.sales-cardtotal-customer { 
+  background-color: #e6c4f5;
+  border-radius: 8px;
+  padding: 20px;
+  padding-right: 37px;
+
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* display: flex; */
   width: max-content;
   height: max-content;
   align-items: center;
 }
 
-.sales-card .icon {
+
+.sales-cardtotal-customer .icon {
   font-size: 30px;
   margin-right: 15px;
-  padding-bottom: 100px;
+  margin-bottom: 20px;
+}
+.sales-cardtotal-sold .icon {
+  font-size: 30px;
+  margin-right: 15px;
+  margin-bottom: 20px;
+}
+.sales-cardtotal-orders .icon {
+  font-size: 30px;
+  margin-right: 15px;
+  margin-bottom: 20px;
+}
+.sales-cardtotal-sales .icon {
+  font-size: 30px;
+  margin-right: 15px;
+  margin-bottom: 20px;
 }
 
 .sales-card .details {
   /* flex-grow: 1; */
-  padding-top: 100px;
-  margin-right: 15px;
+  margin-right: 55px;
   
 }
 

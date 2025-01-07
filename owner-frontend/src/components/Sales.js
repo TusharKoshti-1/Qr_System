@@ -117,7 +117,7 @@ const Sales = () => {
       ) : (
         <>
           <div className="sales-summary">
-            <div className="sales-card total-sales">
+            <div className="sales-cardtotal-sales">
               <div className="icon">📊</div>
               <div className="details">
                 <h2>₹{calculateTotalRevenue(salesViewData)}</h2>
@@ -125,11 +125,27 @@ const Sales = () => {
                 <small>Last day +8%</small>
               </div>
             </div>
-            <div className="sales-card total-orders">
+            <div className="sales-cardtotal-orders">
               <div className="icon">📝</div>
               <div className="details">
                 <h2>{calculateTotalOrders(salesViewData)}</h2>
                 <p>Total Orders</p>
+                <small>Last day +5%</small>
+              </div>
+            </div>
+            <div className="sales-cardtotal-sold">
+              <div className="icon">📝</div>
+              <div className="details">
+                <h2>{calculateTotalOrders(salesViewData)}</h2>
+                <p>Total Sold</p>
+                <small>Last day +5%</small>
+              </div>
+            </div>
+            <div className="sales-cardtotal-customer">
+              <div className="icon">📝</div>
+              <div className="details">
+                <h2>{calculateTotalOrders(salesViewData)}</h2>
+                <p>Total Customers</p>
                 <small>Last day +5%</small>
               </div>
             </div>
