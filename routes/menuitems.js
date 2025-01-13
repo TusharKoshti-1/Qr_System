@@ -31,6 +31,8 @@ router.get('/api/menuitems', (req, res) => {
 router.post('/api/add-menuitem', upload.single('image'), (req, res) => {
     const { name, category } = req.body;
     const image = req.file ? req.file.buffer : null;
+    console.log(image);
+    console.log(req.file);
 
     if (!name || !category || !image) {
         return res.status(400).send('Name, category, and image are required.');
@@ -44,6 +46,19 @@ router.post('/api/add-menuitem', upload.single('image'), (req, res) => {
         }
         res.json({ message: 'Menu item added successfully' });
     });
+});
+
+// API to delete a menu item
+router.delete('/api/remove-itemofmenu/:id', (req, res) => {
+  const { id } = req.params;
+  const query = 'DELETE FROM MenuItems WHERE id = ?';
+  connection.query(query, [id], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
+    }
+    res.json({ message: 'Menu item deleted successfully' });
+  });
 });
 
   module.exports = router;

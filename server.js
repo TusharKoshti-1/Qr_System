@@ -10,7 +10,7 @@ const MenuItems = require('./routes/menuitems')
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:3000' , 'https://eleven-windows-cheat.loca.lt' ], // Adjust to your frontend domain or localhost
+  origin: ['http://localhost:3000' , 'https://eleven-windows-cheat.loca.lt' , 'http://localhost:5000', 'http://localhost:3001', 'https://r21gqnrc-3000.inc1.devtunnels.ms' ], // Adjust to your frontend domain or localhost
 }));
 app.use(bodyParser.json());
 
