@@ -6,13 +6,25 @@ const connection = require("../db/config");
 router.get("/api/sales", (req, res) => {
   const query = `
     SELECT 
-      JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].name')) AS name,
-      SUM(JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].quantity'))) AS quantity,
-      SUM(JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].price')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].quantity'))) AS revenue
-    FROM orders
-    WHERE status = 'Completed'
-    GROUP BY name
-    ORDER BY revenue DESC
+      item_details.name AS name,
+      SUM(item_details.quantity) AS quantity,
+      SUM(item_details.price * item_details.quantity) AS revenue
+    FROM (
+      SELECT 
+        JSON_UNQUOTE(JSON_EXTRACT(item, '$.name')) AS name,
+        CAST(JSON_UNQUOTE(JSON_EXTRACT(item, '$.quantity')) AS UNSIGNED) AS quantity,
+        CAST(JSON_UNQUOTE(JSON_EXTRACT(item, '$.price')) AS DECIMAL(10, 2)) AS price
+      FROM orders
+      JOIN JSON_TABLE(items, '$[*]' COLUMNS (
+        item JSON PATH '$',
+        name VARCHAR(255) PATH '$.name',
+        quantity INT PATH '$.quantity',
+        price DECIMAL(10, 2) PATH '$.price'
+      )) AS item_details
+      WHERE status = 'Completed' AND is_deleted = 0
+    ) AS item_details
+    GROUP BY item_details.name
+    ORDER BY revenue DESC;
   `;
 
   connection.query(query, (err, results) => {
@@ -21,7 +33,7 @@ router.get("/api/sales", (req, res) => {
       return res.status(500).send("Failed to load sales data.");
     }
 
-    // Parse the results to ensure compatibility with the frontend
+    // Format the results for the frontend
     const salesData = results.map((row) => ({
       name: row.name,
       quantity: parseInt(row.quantity, 10),
@@ -31,56 +43,6 @@ router.get("/api/sales", (req, res) => {
     res.json(salesData);
   });
 });
-
-
-router.get("/api/sales/daily", (req, res) => {
-  const query = `
-    SELECT items, SUM(total_amount) as total_revenue 
-    FROM orders 
-    WHERE status = 'Completed' AND DATE(created_on) = CURDATE()
-    GROUP BY items
-  `;
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching sales data:", err);
-      return res.status(500).json({ message: "Database error" });
-    }
-    res.json(results);
-  });
-});
-
-router.get("/api/sales/weekly", (req, res) => {
-  const query = `
-    SELECT items, SUM(total_amount) as total_revenue 
-    FROM orders 
-    WHERE status = 'Completed' AND DATE(created_on) = CURDATE()
-    GROUP BY items
-  `;
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching sales data:", err);
-      return res.status(500).json({ message: "Database error" });
-    }
-    res.json(results);
-  });
-});
-
-router.get("/api/sales/monthly", (req, res) => {
-  const query = `
-    SELECT items, SUM(total_amount) as total_revenue 
-    FROM orders 
-    WHERE status = 'Completed' AND DATE(created_on) = CURDATE()
-    GROUP BY items
-  `;
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching sales data:", err);
-      return res.status(500).json({ message: "Database error" });
-    }
-    res.json(results);
-  });
-});
-
 
 // Fetch top products
 router.get("/api/sales/top-products", (req, res) => {

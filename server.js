@@ -13,6 +13,19 @@ app.use(cors({
   origin: ['http://localhost:3000' , 'https://eleven-windows-cheat.loca.lt' , 'http://localhost:5000', 'http://localhost:3001', 'https://r21gqnrc-3000.inc1.devtunnels.ms' ], // Adjust to your frontend domain or localhost
 }));
 app.use(bodyParser.json());
+// JSON and URL-encoded payloads
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+
+// Increase the payload size limit
+app.use(express.json({ limit: '100mb' })); // For JSON payloads
+app.use(express.urlencoded({ limit: '100mb', extended: true })); // For form data
+
+app.use((req, res, next) => {
+  console.log('Content-Length:', req.headers['content-length']);
+  next();
+});
+
 
 // Use Helmet to set CSP
 app.use(
