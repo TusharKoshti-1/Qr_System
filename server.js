@@ -1,33 +1,36 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require("cors");
 const WebSocket = require("ws");
-const helmet = require('helmet');  // Include helmet
+const helmet = require('helmet');  
 const menuRoutes = require('./routes/menu'); 
 const orderRoutes = require('./routes/order');
-const salesRoutes = require('./routes/sales')
-const MenuItems = require('./routes/menuitems')
+const salesRoutes = require('./routes/sales');
+const MenuItems = require('./routes/menuitems');
 
 const app = express();
+
+// CORS configuration
 app.use(cors({
-  origin: ['http://localhost:3000' , 'https://eleven-windows-cheat.loca.lt' , 'http://localhost:5000', 'http://localhost:3001', 'https://r21gqnrc-3000.inc1.devtunnels.ms' ], // Adjust to your frontend domain or localhost
+  origin: [
+    'http://localhost:3000',
+    'https://eleven-windows-cheat.loca.lt',
+    'http://localhost:5000',
+    'http://localhost:3001',
+    'https://r21gqnrc-3000.inc1.devtunnels.ms'
+  ],
 }));
-app.use(bodyParser.json());
-// JSON and URL-encoded payloads
-app.use(bodyParser.json({ limit: '100mb' }));
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
-// Increase the payload size limit
-app.use(express.json({ limit: '100mb' })); // For JSON payloads
-app.use(express.urlencoded({ limit: '100mb', extended: true })); // For form data
+// Increase payload size limits
+app.use(express.json({ limit: '100mb' }));  // For JSON payloads
+app.use(express.urlencoded({ limit: '100mb', extended: true }));  // For form data
 
+// Debugging Content-Length header
 app.use((req, res, next) => {
   console.log('Content-Length:', req.headers['content-length']);
   next();
 });
 
-
-// Use Helmet to set CSP
+// Use Helmet for security headers
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -35,16 +38,15 @@ app.use(
       imgSrc: ["'self'", "https://67f3-2409-40c1-5004-fc74-37ee-99ef-5e2b-10ad.ngrok-free.app/api/add-menuitem"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
-      // Add any other resource types if necessary (like fonts, media, etc.)
     },
   })
 );
 
-// Initialize WebSocket server
+// WebSocket server initialization
 const wss = new WebSocket.Server({ port: 5001 });
 console.log('WebSocket server running on port 5001');
 
-// Broadcast to all WebSocket clients
+// WebSocket broadcast function
 wss.broadcast = (data) => {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -53,7 +55,7 @@ wss.broadcast = (data) => {
   });
 };
 
-// Middleware to pass `wss` to routes
+// Pass WebSocket server to routes
 app.use((req, res, next) => {
   req.wss = wss;
   next();
@@ -69,5 +71,3 @@ app.use(MenuItems);
 app.listen(5000, () => {
   console.log('Server running on port 5000');
 });
-   
-
