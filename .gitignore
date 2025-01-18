@@ -1,0 +1,5 @@
+# Root-level node_modules
+node_modules/
+
+# Ignore all node_modules in the project
+**/node_modules/
