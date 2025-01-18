@@ -6,7 +6,12 @@ const multer = require('multer');
 
 // Set up Multer for image upload
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage, 
+  limits: { 
+    fileSize: 20 * 1024 * 1024 
+  } 
+});
 
 // API to fetch all menu items
 router.get('/api/menuitems', (req, res) => {

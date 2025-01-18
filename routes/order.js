@@ -30,13 +30,34 @@ router.post('/api/orders', (req, res) => {
 
 // Fetch all orders
 router.get('/api/orders', (req, res) => {
+  // const query = 'SELECT * FROM orders WHERE status = "Pending" ORDER BY created_on DESC';
+  // connection.query(query, (err, results) => {
+  //   if (err) {
+  //     console.error('Error fetching orders:', err);
+  //     return res.status(500).send('Database error');
+  //   }
+  //   console.log(result, "result")
+  //   res.json(results);
+  // });
   const query = 'SELECT * FROM orders WHERE status = "Pending" ORDER BY created_on DESC';
+  
   connection.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching orders:', err);
       return res.status(500).send('Database error');
     }
-    res.json(results);
+
+    // Decode the `items` column for each order
+    const processedResults = results.map(order => {
+      try {
+        order.items = JSON.parse(order.items); // Parse the JSON string
+      } catch (error) {
+        console.error(`Error parsing items for order ID ${order.id}:`, error);
+      }
+      return order;
+    });
+
+    res.json(processedResults); // Send the processed results as JSON
   });
 });
 // Update an order
