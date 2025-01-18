@@ -5,9 +5,13 @@ const helmet = require('helmet');
 const menuRoutes = require('./routes/menu'); 
 const orderRoutes = require('./routes/order');
 const salesRoutes = require('./routes/sales');
+const path = require('path');
 const MenuItems = require('./routes/menuitems');
 
 const app = express();
+
+// Serve static files from the "uploads" folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // CORS configuration
 app.use(cors({

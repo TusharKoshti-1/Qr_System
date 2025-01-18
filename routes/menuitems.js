@@ -2,14 +2,34 @@ const express = require('express');
 const router = express.Router();
 const connection = require('../db/config');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
+// Set up Multer to store images in the "menu-items" directory
+const uploadDir = path.join(__dirname, '../uploads/menu-items'); // Path to "menu-items" folder
 
-// Set up Multer for image upload
-const storage = multer.memoryStorage();
+// Ensure the upload directory exists, if not, create it
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure storage settings
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // Save files in the "menu-items" folder
+  },
+  filename: (req, file, cb) => {
+    // Use the current timestamp + original file extension for unique filenames
+    const fileExt = path.extname(file.originalname);
+    const filename = Date.now() + fileExt;
+    cb(null, filename); // Set the file name
+  }
+});
+
 const upload = multer({ 
   storage: storage, 
   limits: { 
-    fileSize: 20 * 1024 * 1024 
+    fileSize: 20 * 1024 * 1024 // Limit file size to 20 MB
   } 
 });
 
@@ -20,14 +40,18 @@ router.get('/api/menuitems', (req, res) => {
       console.error(err);
       return res.status(500).send('Database error');
     }
-    // Convert the binary image data into Base64 string
+    
+    // Map results to include the image URL
     const menuItems = results.map((item) => ({
       id: item.id,
       name: item.name,
       category: item.category,
-      image: item.image ? `data:image/jpeg;base64,${item.image.toString("base64")}` : null
+      // Construct the image URL from the file path stored in the database
+      image: item.image ? `/uploads/menu-items/${path.basename(item.image)}` : null 
     }));
-    res.json(menuItems);  // Return the processed menu items with base64 images
+    console.log(menuItems.image);
+    
+    res.json(menuItems);  // Return the processed menu items with the image URL
   });
 });
 
@@ -35,16 +59,15 @@ router.get('/api/menuitems', (req, res) => {
 // API to add a new menu item
 router.post('/api/add-menuitem', upload.single('image'), (req, res) => {
     const { name, category } = req.body;
-    const image = req.file ? req.file.buffer : null;
-    console.log(image);
-    console.log(req.file);
+    const imageFilePath = req.file ? req.file.path : null;  // Get the file path
 
-    if (!name || !category || !image) {
+    if (!name || !category || !imageFilePath) {
         return res.status(400).send('Name, category, and image are required.');
     }
 
+    // Insert the menu item into the database (you can store the image path in the database)
     const query = 'INSERT INTO MenuItems (name, category, image) VALUES (?, ?, ?)';
-    connection.query(query, [name, category, image], (err, result) => {
+    connection.query(query, [name, category, imageFilePath], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).send('Database error');
@@ -66,5 +89,4 @@ router.delete('/api/remove-itemofmenu/:id', (req, res) => {
   });
 });
 
-  module.exports = router;
-  
+module.exports = router;
