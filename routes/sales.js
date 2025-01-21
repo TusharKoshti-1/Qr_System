@@ -44,6 +44,26 @@ router.get("/api/sales", (req, res) => {
   });
 });
 
+router.get("/api/sale", (req, res) => {
+  const query = `SELECT id, customer_name, phone, total_amount, payment_method, created_on FROM order WHERE status = Completed`;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching sales data:", err);
+      return res.status(500).send("Failed to load sales data.");
+    }
+
+    // Format the results for the frontend
+    const salesData = results.map((row) => ({
+      name: row.name,
+      quantity: parseInt(row.quantity, 10),
+      revenue: parseFloat(row.revenue),
+    }));
+
+    res.json(salesData);
+  });
+});
+
 // Fetch top products
 router.get("/api/sales/top-products", (req, res) => {
   const query = `
