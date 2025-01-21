@@ -1,19 +1,12 @@
 const mysql = require('mysql2');
+require('dotenv').config();  // This will load the .env variables
 
 const connection = mysql.createConnection({
-  host: 'localhost', // Hostname provided by InfinityFree
-  user: 'your_username',            // MySQL Username
-  password: 'your_password',          // MySQL Password
-  database: 'qr_ordering_system',    // MySQL Database Name (replace XXX with your actual database name)                     // Optional, default MySQL port
+  host: process.env.DB_HOST, // Hostname provided by InfinityFree
+  user: process.env.DB_USER,            // MySQL Username
+  password: process.env.DB_PASS,          // MySQL Password
+  database: process.env.DB_NAME,    // MySQL Database Name (replace XXX with your actual database name)
 });
-
-// const connection = mysql.createConnection({
-//   host: 'sql307.infinityfree.com ', // Hostname provided by InfinityFree
-//   user: 'if0_37905014',            // MySQL Username
-//   password: '9824243834',          // MySQL Password
-//   database: 'if0_37905014_qr_ordering_system',    // MySQL Database Name (replace XXX with your actual database name)                     // Optional, default MySQL port
-// });
-
 
 connection.connect((err) => {
   if (err) {
