@@ -7,6 +7,7 @@ const orderRoutes = require('./routes/order');
 const salesRoutes = require('./routes/sales');
 const path = require('path');
 const MenuItems = require('./routes/menuitems');
+const routes = require('./routes/routes');
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use(menuRoutes);
 app.use(orderRoutes);
 app.use(salesRoutes);
 app.use(MenuItems);
+app.use(routes);
 
 // Start the server
 app.listen(5000, () => {
