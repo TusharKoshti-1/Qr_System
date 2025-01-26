@@ -45,22 +45,26 @@ router.get("/api/sales", (req, res) => {
 });
 
 router.get("/api/sale", (req, res) => {
-  const query = `SELECT id, customer_name, phone, total_amount, payment_method, created_on FROM order WHERE status = Completed`;
+  const query = `SELECT DISTINCT id, customer_name, phone, total_amount, payment_method, created_on
+   FROM orders 
+   WHERE status='Completed'`;
 
   connection.query(query, (err, results) => {
     if (err) {
       console.error("Error fetching sales data:", err);
       return res.status(500).send("Failed to load sales data.");
     }
+    console.log(results);
 
     // Format the results for the frontend
-    const salesData = results.map((row) => ({
-      name: row.name,
-      quantity: parseInt(row.quantity, 10),
-      revenue: parseFloat(row.revenue),
-    }));
+    // const salesData = results.map((row) => ({
+    //   name: row.name,
+    //   quantity: parseInt(row.quantity, 10),
+    //   revenue: parseFloat(row.revenue),
+    //   phone: parseInt(row.phone, 10),
+    // }));
 
-    res.json(salesData);
+    res.json(results);
   });
 });
 
