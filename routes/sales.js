@@ -55,15 +55,6 @@ router.get("/api/sale", (req, res) => {
       return res.status(500).send("Failed to load sales data.");
     }
     console.log(results);
-
-    // Format the results for the frontend
-    // const salesData = results.map((row) => ({
-    //   name: row.name,
-    //   quantity: parseInt(row.quantity, 10),
-    //   revenue: parseFloat(row.revenue),
-    //   phone: parseInt(row.phone, 10),
-    // }));
-
     res.json(results);
   });
 });
@@ -100,5 +91,67 @@ router.get("/api/sales/top-products", (req, res) => {
   });
 });
 
+router.get("/api/sales/today-total", (req, res) => {
+  const query = `
+    SELECT COALESCE(SUM(total_amount), 0) AS total_sales 
+    FROM orders 
+    WHERE status = 'Completed' 
+      AND created_on >= CURDATE()
+  `;
 
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching today's sales total:", err);
+      return res.status(500).json({ error: "Failed to load today's sales total." });
+    }
+    
+    // Return the total sales amount for today
+    res.json({ totalSales: results[0].total_sales });
+  });
+});
+
+// Backend Route (Node.js/Express)
+router.get("/api/orders/today-total", (req, res) => {
+  const query = `
+    SELECT COUNT(id) AS total_orders 
+    FROM orders 
+    WHERE status = 'Completed' 
+      AND created_on >= CURDATE()
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching today's orders:", err);
+      return res.status(500).json({ error: "Failed to load today's orders" });
+    }
+    
+    res.json({ totalOrders: results[0].total_orders });
+  });
+});
+
+
+router.get("/api/items/today-total", (req, res) => {
+  const query = `
+    SELECT 
+      COALESCE(SUM(item.quantity), 0) AS total_items_sold
+    FROM orders,
+    JSON_TABLE(
+      items,
+      '$[*]' COLUMNS(
+        quantity INT PATH '$.quantity'
+      )
+    ) AS item
+    WHERE status = 'Completed'
+      AND created_on >= CURDATE()
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching total items:", err);
+      return res.status(500).json({ error: "Failed to calculate total items" });
+    }
+    
+    res.json({ totalItems: results[0].total_items_sold });
+  });
+});
 module.exports = router;
