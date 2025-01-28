@@ -172,7 +172,6 @@ router.get("/api/products/top", (req, res) => {
       )
     ) AS item
     WHERE status = 'Completed'
-      AND created_on >= CURDATE()
     GROUP BY item.id, item.name
     ORDER BY total_sales DESC
     LIMIT 4
