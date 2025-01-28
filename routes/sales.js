@@ -154,4 +154,53 @@ router.get("/api/items/today-total", (req, res) => {
     res.json({ totalItems: results[0].total_items_sold });
   });
 });
+
+// Backend Route (Node.js/Express)
+router.get("/api/products/top", (req, res) => {
+  const query = `
+    SELECT 
+      item.id AS product_id,
+      item.name AS product_name,
+      SUM(item.quantity) AS total_sales
+    FROM orders,
+    JSON_TABLE(
+      items,
+      '$[*]' COLUMNS(
+        id INT PATH '$.id',
+        name VARCHAR(255) PATH '$.name',
+        quantity INT PATH '$.quantity'
+      )
+    ) AS item
+    WHERE status = 'Completed'
+      AND created_on >= CURDATE()
+    GROUP BY item.id, item.name
+    ORDER BY total_sales DESC
+    LIMIT 4
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching top products:", err);
+      return res.status(500).json({ error: "Failed to load top products" });
+    }
+
+    // Assign theme colors based on ranking
+    const colorPalette = [
+      'info.main',
+      'success.main',
+      'secondary.dark',
+      'warning.dark'
+    ];
+
+    const topProducts = results.map((product, index) => ({
+      id: product.product_id,
+      name: product.product_name,
+      sales: product.total_sales,
+      color: colorPalette[index] || 'primary.main'
+    }));
+
+    res.json(topProducts);
+  });
+});
+
 module.exports = router;
