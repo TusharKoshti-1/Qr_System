@@ -102,9 +102,11 @@ router.get("/api/sales/today-total", (req, res) => {
   connection.query(query, (err, results) => {
     if (err) {
       console.error("Error fetching today's sales total:", err);
-      return res.status(500).json({ error: "Failed to load today's sales total." });
+      return res
+        .status(500)
+        .json({ error: "Failed to load today's sales total." });
     }
-    
+
     // Return the total sales amount for today
     res.json({ totalSales: results[0].total_sales });
   });
@@ -124,11 +126,10 @@ router.get("/api/orders/today-total", (req, res) => {
       console.error("Error fetching today's orders:", err);
       return res.status(500).json({ error: "Failed to load today's orders" });
     }
-    
+
     res.json({ totalOrders: results[0].total_orders });
   });
 });
-
 
 router.get("/api/items/today-total", (req, res) => {
   const query = `
@@ -150,7 +151,7 @@ router.get("/api/items/today-total", (req, res) => {
       console.error("Error fetching total items:", err);
       return res.status(500).json({ error: "Failed to calculate total items" });
     }
-    
+
     res.json({ totalItems: results[0].total_items_sold });
   });
 });
@@ -185,20 +186,66 @@ router.get("/api/products/top", (req, res) => {
 
     // Assign theme colors based on ranking
     const colorPalette = [
-      'info.main',
-      'success.main',
-      'secondary.dark',
-      'warning.dark'
+      "info.main",
+      "success.main",
+      "secondary.dark",
+      "warning.dark",
     ];
 
     const topProducts = results.map((product, index) => ({
       id: product.product_id,
       name: product.product_name,
       sales: product.total_sales,
-      color: colorPalette[index] || 'primary.main'
+      color: colorPalette[index] || "primary.main",
     }));
 
     res.json(topProducts);
+  });
+});
+
+// Add this to your backend routes
+router.get("/api/revenue", (req, res) => {
+  const query = `
+    SELECT 
+    DATE_FORMAT(created_on, '%W') AS day,
+    SUM(CASE WHEN payment_method = 'online' THEN total_amount ELSE 0 END) AS online_sales,
+    SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END) AS offline_sales
+FROM orders
+WHERE status = 'Completed'
+    AND created_on >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+GROUP BY DATE_FORMAT(created_on, '%W'), DAYOFWEEK(created_on)
+ORDER BY DAYOFWEEK(created_on)
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching revenue data:", err);
+      return res.status(500).json({ error: "Failed to load revenue data" });
+    }
+
+    const daysOfWeek = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+    const revenueData = {
+      "Online Sales": Array(7).fill(0),
+      "Offline Sales": Array(7).fill(0),
+    };
+
+    results.forEach((row) => {
+      const index = daysOfWeek.indexOf(row.day);
+      if (index !== -1) {
+        revenueData["Online Sales"][index] = row.online_sales / 1000; // Convert to thousands
+        revenueData["Offline Sales"][index] = row.offline_sales / 1000;
+      }
+    });
+
+    res.json(revenueData);
   });
 });
 
