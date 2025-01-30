@@ -8,7 +8,7 @@ const salesRoutes = require('./routes/sales');
 const path = require('path');
 const MenuItems = require('./routes/menuitems');
 const routes = require('./routes/routes');
-
+const visitorInsights = require('./routes/visitorinsight');
 const app = express();
 
 // Serve static files from the "uploads" folder
@@ -70,9 +70,9 @@ app.use((req, res, next) => {
 app.use(menuRoutes);
 app.use(orderRoutes);
 app.use(salesRoutes);
+app.use(visitorInsights);
 app.use(MenuItems);
 app.use(routes);
-
 // Start the server
 app.listen(5000, () => {
   console.log('Server running on port 5000');
