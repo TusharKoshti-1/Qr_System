@@ -41,7 +41,7 @@ async function getVisitorInsightsData(connection) {
             GROUP BY customer_name
             HAVING COUNT(id) > 5
         `;
-        const loyalResult = await connection.execute(loyalQuery, [month, year]);
+        const loyalResult = await connection.execute(loyalQuery, [months, year]);
         console.log('Loyal Result:', loyalResult);  // Log the result to debug
         const loyalRows = loyalResult._rows;  // Access the _rows property directly
         visitorInsights['loyal customers'].push(loyalRows.length);
@@ -55,7 +55,7 @@ async function getVisitorInsightsData(connection) {
             HAVING MIN(created_on) BETWEEN ? AND ?
         `;
         const newResult = await connection.execute(newQuery, [
-            month, year,
+            months, year,
             new Date(year, month - 1, 1),  // First day of the current month
             new Date(year, month, 0),  // Last day of the current month
         ]);
@@ -69,7 +69,7 @@ async function getVisitorInsightsData(connection) {
             FROM orders
             WHERE MONTH(created_on) = ? AND YEAR(created_on) = ?
         `;
-        const uniqueResult = await connection.execute(uniqueQuery, [month, year]);
+        const uniqueResult = await connection.execute(uniqueQuery, [months, year]);
         console.log('Unique Result:', uniqueResult);  // Log the result to debug
         const uniqueRows = uniqueResult._rows;  // Access the _rows property directly
         visitorInsights['unique customers'].push(uniqueRows.length);

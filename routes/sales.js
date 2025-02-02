@@ -249,4 +249,110 @@ ORDER BY DAYOFWEEK(created_on)
   });
 });
 
+router.get("/api/visitors", (req, res) => {
+  const query = `
+    WITH customer_first_order AS (
+      SELECT 
+        CONCAT(customer_name, phone) AS customer_id,
+        MIN(DATE_FORMAT(created_on, '%Y-%m-01')) AS first_order_month
+      FROM orders
+      WHERE status = 'Completed' AND is_deleted = 0
+      GROUP BY customer_name, phone
+    ),
+    monthly_orders AS (
+      SELECT 
+        DATE_FORMAT(created_on, '%Y-%m-01') AS order_month,
+        CONCAT(customer_name, phone) AS customer_id
+      FROM orders
+      WHERE status = 'Completed' AND is_deleted = 0
+      GROUP BY order_month, customer_name, phone
+    )
+    SELECT
+      DATE_FORMAT(mo.order_month, '%M') AS month_name,
+      MONTH(mo.order_month) AS month_number,
+      COUNT(DISTINCT mo.customer_id) AS unique_customers,
+      SUM(CASE WHEN cfo.first_order_month = mo.order_month THEN 1 ELSE 0 END) AS new_customers,
+      SUM(CASE WHEN cfo.first_order_month < mo.order_month THEN 1 ELSE 0 END) AS loyal_customers
+    FROM monthly_orders mo
+    JOIN customer_first_order cfo ON mo.customer_id = cfo.customer_id
+    WHERE mo.order_month >= DATE_SUB(CURRENT_DATE(), INTERVAL 11 MONTH)
+    GROUP BY mo.order_month
+    ORDER BY mo.order_month;
+  `;
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching visitor data:", err);
+      return res.status(500).json({ error: "Failed to load visitor insights" });
+    }
+
+    // Create empty structure for 12 months
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const visitorData = {
+      'loyal customers': Array(12).fill(0),
+      'new customers': Array(12).fill(0),
+      'unique customers': Array(12).fill(0)
+    };
+
+    // Fill data from query results
+    results.forEach(row => {
+      const monthIndex = row.month_number - 1;
+      visitorData['loyal customers'][monthIndex] = row.loyal_customers;
+      visitorData['new customers'][monthIndex] = row.new_customers;
+      visitorData['unique customers'][monthIndex] = row.unique_customers;
+    });
+
+    res.json(visitorData);
+  });
+});
+
+// "Loyal" means customers who had ordered before the current month
+
+// "New" means first-time customers in that month
+
+// "Unique" is total distinct customers in the month
+
+
+// Add this to your backend routes
+router.get("/api/items-report", (req, res) => {
+  const query = `
+    SELECT 
+      item.id AS item_id,
+      item.name AS item_name,
+      SUM(item.quantity) AS total_quantity,
+      SUM(item.quantity * item.price) AS total_revenue
+    FROM orders,
+    JSON_TABLE(
+      items,
+      '$[*]' COLUMNS(
+        id INT PATH '$.id',
+        name VARCHAR(255) PATH '$.name',
+        price DECIMAL(10,2) PATH '$.price',
+        quantity INT PATH '$.quantity'
+      )
+    ) AS item
+    WHERE status = 'Completed'
+      AND created_on BETWEEN ? AND ?
+    GROUP BY item.id, item.name
+    ORDER BY total_quantity DESC
+  `;
+
+  // Get date range from query parameters
+  const startDate = req.query.startDate || '1970-01-01';
+  const endDate = req.query.endDate || '2100-12-31';
+
+  connection.query(query, [startDate, endDate], (err, results) => {
+    if (err) {
+      console.error("Error fetching items report:", err);
+      return res.status(500).json({ error: "Failed to load items report" });
+    }
+
+    res.json(results);
+  });
+});
+
+
+
 module.exports = router;
