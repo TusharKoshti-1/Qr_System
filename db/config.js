@@ -5,7 +5,8 @@ const connection = mysql.createConnection({
   host: process.env.DB_HOST, // Hostname provided by InfinityFree
   user: process.env.DB_USER,            // MySQL Username
   password: process.env.DB_PASS,          // MySQL Password
-  database: process.env.DB_NAME,    // MySQL Database Name (replace XXX with your actual database name)
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,    // MySQL Database Name (replace XXX with your actual database name)
 });
 
 connection.connect((err) => {
