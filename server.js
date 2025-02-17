@@ -22,7 +22,8 @@ app.use(cors({
     'https://eleven-windows-cheat.loca.lt',
     'http://localhost:5000',
     'http://localhost:3001',
-    'https://r21gqnrc-3000.inc1.devtunnels.ms'
+    'https://r21gqnrc-3000.inc1.devtunnels.ms',
+    'https://qr-backend-tusharkoshti-1s-projects.vercel.app'
   ],
 }));
 
