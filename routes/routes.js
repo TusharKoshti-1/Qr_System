@@ -1,82 +1,80 @@
 const express = require('express');
-const { loginUser, signupUser } = require('../db/auth');
+// const { loginUser, signupUser } = require('../db/auth');
 const { v4: uuidv4 } = require("uuid");
+const path = require('path');
 const bcrypt = require('bcryptjs');
-const mysql = require('mysql2/promise');
+const fs = require('fs');
+// const mysql = require('mysql2/promise');
+const { pool, masterPool } = require('../db/config');
 const router = express.Router();
 
-const masterDbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER, // MySQL Username
-  password: process.env.DB_PASS, // MySQL Password
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-  connectTimeout: 10000,
-};
-
-// Login Route
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
-  }
-  loginUser(email, password, res);
-});
-
-// Function to initialize new admin database
+// Initialize admin database with schema.sql
 async function initializeAdminDatabase(dbName) {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    port: process.env.DB_PORT,
-    connectTimeout: 10000,
-  });
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(`CREATE DATABASE IF NOT EXISTS ??`, [dbName]);
+    await connection.query(`USE ??`, [dbName]);
 
-  await connection.query(`CREATE DATABASE IF NOT EXISTS ??`, [dbName]);
-  await connection.query(`USE ??`, [dbName]);
-
-  // Create tables
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL
-    )
-  `);
-
-  
-
-  await connection.end();
+    // Execute schema.sql
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    const statements = schemaSql.split(';').filter(s => s.trim());
+    
+    for (const stmt of statements) {
+      await connection.query(stmt);
+    }
+  } finally {
+    connection.release();
+  }
 }
 
-
+// Admin Registration
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
-  
   try {
-    // Generate unique database name
     const dbName = `admin_${uuidv4().replace(/-/g, '')}`;
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save admin to master database
-    const masterConnection = await mysql.createConnection(masterDbConfig);
-    await masterConnection.query(
+    // Save to master_db.admins
+    await masterPool.query(
       'INSERT INTO admins (username, email, password, db_name) VALUES (?, ?, ?, ?)',
       [username, email, hashedPassword, dbName]
     );
-    await masterConnection.end();
 
-    // Create and initialize admin database
     await initializeAdminDatabase(dbName);
-
     res.status(201).json({ message: 'Admin registered successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: 'Registration failed', details: error.message });
+  }
+});
+
+// Admin Login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    // Check credentials in master_db.admins
+    const [rows] = await masterPool.query(
+      'SELECT * FROM admins WHERE email = ?',
+      [email]
+    );
+    
+    if (!rows.length) return res.status(404).json({ message: 'Admin not found' });
+    const admin = rows[0];
+
+    // Verify password
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+
+    // Generate JWT with database name
+    const token = jwt.sign(
+      { id: admin.id, dbName: admin.db_name },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed', details: error.message });
   }
 });
 
