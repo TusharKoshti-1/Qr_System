@@ -2,6 +2,7 @@ const express = require('express');
 // const { loginUser, signupUser } = require('../db/auth');
 const { v4: uuidv4 } = require("uuid");
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 // const mysql = require('mysql2/promise');
