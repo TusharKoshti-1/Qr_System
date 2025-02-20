@@ -33,8 +33,8 @@ const upload = multer({
   } 
 });
 
-// API to fetch all menu items
-router.get('/api/menuitems', (req, res) => {
+// API to fetch all menu items (protected)
+router.get('/api/menuitems', authorizeAdmin, (req, res) => {
   connection.query('SELECT * FROM MenuItems', (err, results) => {
     if (err) {
       console.error(err);
@@ -46,38 +46,34 @@ router.get('/api/menuitems', (req, res) => {
       id: item.id,
       name: item.name,
       category: item.category,
-      // Construct the image URL from the file path stored in the database
       image: item.image ? `/uploads/menu-items/${path.basename(item.image)}` : null 
     }));
-    console.log(menuItems.image);
     
-    res.json(menuItems);  // Return the processed menu items with the image URL
+    res.json(menuItems);
   });
 });
 
+// API to add a new menu item (protected)
+router.post('/api/add-menuitem', authorizeAdmin, upload.single('image'), (req, res) => {
+  const { name, category } = req.body;
+  const imageFilePath = req.file ? req.file.path : null;  // Get the file path
 
-// API to add a new menu item
-router.post('/api/add-menuitem', upload.single('image'), (req, res) => {
-    const { name, category } = req.body;
-    const imageFilePath = req.file ? req.file.path : null;  // Get the file path
+  if (!name || !category || !imageFilePath) {
+    return res.status(400).send('Name, category, and image are required.');
+  }
 
-    if (!name || !category || !imageFilePath) {
-        return res.status(400).send('Name, category, and image are required.');
+  const query = 'INSERT INTO MenuItems (name, category, image) VALUES (?, ?, ?)';
+  connection.query(query, [name, category, imageFilePath], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
     }
-
-    // Insert the menu item into the database (you can store the image path in the database)
-    const query = 'INSERT INTO MenuItems (name, category, image) VALUES (?, ?, ?)';
-    connection.query(query, [name, category, imageFilePath], (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Database error');
-        }
-        res.json({ message: 'Menu item added successfully' });
-    });
+    res.json({ message: 'Menu item added successfully' });
+  });
 });
 
-// API to delete a menu item
-router.delete('/api/remove-itemofmenu/:id', (req, res) => {
+// API to delete a menu item (protected)
+router.delete('/api/remove-itemofmenu/:id', authorizeAdmin, (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM MenuItems WHERE id = ?';
   connection.query(query, [id], (err, result) => {
@@ -88,5 +84,6 @@ router.delete('/api/remove-itemofmenu/:id', (req, res) => {
     res.json({ message: 'Menu item deleted successfully' });
   });
 });
+
 
 module.exports = router;
