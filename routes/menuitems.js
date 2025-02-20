@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const connection = require('../db/config');
+const { authenticateAdmin } = require('../middleware/middleware');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
