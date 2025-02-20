@@ -23,7 +23,7 @@ router.get('/api/menu', authenticateAdmin, async (req, res) => {
 
 
 // API to add a new menu item
-router.post('/api/add-item', authorizeAdmin, async (req, res) => {
+router.post('/api/add-item', authenticateAdmin, async (req, res) => {
   try {
     const { name, image, price, category } = req.body;
     const query = 'INSERT INTO menu (name, image, price, category) VALUES (?, ?, ?, ?)';
@@ -36,7 +36,7 @@ router.post('/api/add-item', authorizeAdmin, async (req, res) => {
 });
 
 // API to update an item's price
-router.put('/api/update-item/:id', authorizeAdmin, async (req, res) => {
+router.put('/api/update-item/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { price } = req.body;
@@ -50,7 +50,7 @@ router.put('/api/update-item/:id', authorizeAdmin, async (req, res) => {
 });
 
 // API to delete a menu item
-router.delete('/api/delete-item/:id', authorizeAdmin, async (req, res) => {
+router.delete('/api/delete-item/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const query = 'DELETE FROM menu WHERE id = ?';
@@ -63,7 +63,7 @@ router.delete('/api/delete-item/:id', authorizeAdmin, async (req, res) => {
 });
 
 // API to get all distinct categories
-router.get('/api/categories', authorizeAdmin, async (req, res) => {
+router.get('/api/categories', authenticateAdmin, async (req, res) => {
   try {
     const query = 'SELECT DISTINCT category FROM menu';
     const [results] = await req.db.query(query);

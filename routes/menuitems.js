@@ -35,7 +35,7 @@ const upload = multer({
 });
 
 // API to fetch all menu items (protected)
-router.get('/api/menuitems', authorizeAdmin, (req, res) => {
+router.get('/api/menuitems', authenticateAdmin, (req, res) => {
   connection.query('SELECT * FROM MenuItems', (err, results) => {
     if (err) {
       console.error(err);
@@ -55,7 +55,7 @@ router.get('/api/menuitems', authorizeAdmin, (req, res) => {
 });
 
 // API to add a new menu item (protected)
-router.post('/api/add-menuitem', authorizeAdmin, upload.single('image'), (req, res) => {
+router.post('/api/add-menuitem', authenticateAdmin, upload.single('image'), (req, res) => {
   const { name, category } = req.body;
   const imageFilePath = req.file ? req.file.path : null;  // Get the file path
 
@@ -74,7 +74,7 @@ router.post('/api/add-menuitem', authorizeAdmin, upload.single('image'), (req, r
 });
 
 // API to delete a menu item (protected)
-router.delete('/api/remove-itemofmenu/:id', authorizeAdmin, (req, res) => {
+router.delete('/api/remove-itemofmenu/:id', authenticateAdmin, (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM MenuItems WHERE id = ?';
   connection.query(query, [id], (err, result) => {
