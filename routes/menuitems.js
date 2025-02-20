@@ -35,13 +35,9 @@ const upload = multer({
 });
 
 // API to fetch all menu items (protected)
-router.get('/api/menuitems', authenticateAdmin, (req, res) => {
-  connection.query('SELECT * FROM MenuItems', (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Database error');
-    }
-    
+router.get('/api/menuitems', authenticateAdmin, async (req, res) => {
+  try {
+    const [results] = await req.db.query('SELECT * FROM MenuItems');
     // Map results to include the image URL
     const menuItems = results.map((item) => ({
       id: item.id,
@@ -49,13 +45,15 @@ router.get('/api/menuitems', authenticateAdmin, (req, res) => {
       category: item.category,
       image: item.image ? `/uploads/menu-items/${path.basename(item.image)}` : null 
     }));
-    
     res.json(menuItems);
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  }
 });
 
 // API to add a new menu item (protected)
-router.post('/api/add-menuitem', authenticateAdmin, upload.single('image'), (req, res) => {
+router.post('/api/add-menuitem', authenticateAdmin, upload.single('image'), async (req, res) => {
   const { name, category } = req.body;
   const imageFilePath = req.file ? req.file.path : null;  // Get the file path
 
@@ -64,26 +62,26 @@ router.post('/api/add-menuitem', authenticateAdmin, upload.single('image'), (req
   }
 
   const query = 'INSERT INTO MenuItems (name, category, image) VALUES (?, ?, ?)';
-  connection.query(query, [name, category, imageFilePath], (err, result) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Database error');
-    }
+  try {
+    await req.db.query(query, [name, category, imageFilePath]);
     res.json({ message: 'Menu item added successfully' });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  }
 });
 
 // API to delete a menu item (protected)
-router.delete('/api/remove-itemofmenu/:id', authenticateAdmin, (req, res) => {
+router.delete('/api/remove-itemofmenu/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM MenuItems WHERE id = ?';
-  connection.query(query, [id], (err, result) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Database error');
-    }
+  try {
+    await req.db.query(query, [id]);
     res.json({ message: 'Menu item deleted successfully' });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  }
 });
 
 
