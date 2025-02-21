@@ -23,7 +23,8 @@ app.use(cors({
     'http://localhost:5000',
     'http://localhost:3001',
     'https://r21gqnrc-3000.inc1.devtunnels.ms',
-    'https://qr-backend-tusharkoshti-1s-projects.vercel.app'
+    'https://qr-backend-tusharkoshti-1s-projects.vercel.app',
+    'http://127.0.0.1:8080'
   ],
 }));
 
