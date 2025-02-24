@@ -8,6 +8,7 @@ const salesRoutes = require('./routes/sales');
 const path = require('path');
 const MenuItems = require('./routes/menuitems');
 const routes = require('./routes/routes');
+const customer = require('./routes/customer');
 const settings = require('./routes/settings');
 const visitorInsights = require('./routes/visitorinsight');
 const app = express();
@@ -75,6 +76,7 @@ app.use(orderRoutes);
 app.use(salesRoutes);
 app.use(visitorInsights);
 app.use(settings);
+app.use(customer);
 app.use(MenuItems);
 app.use(routes);
 // Start the server

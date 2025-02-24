@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const connection = require("../db/config"); 
+const qrcode = require('qrcode');
 const { authenticateAdmin } = require('../middleware/middleware');
  // Import the database connection
 
@@ -73,6 +74,19 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
     res.status(500).send('Database error');
   }
 });
+
+
+// Generate QR code for restaurant
+router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
+  try {
+    const url = `https://yourdomain.com/welcome?restaurant_id=${req.admin.id}`;
+    const qrImage = await qrcode.toDataURL(url);
+    res.json({ qrImage });
+  } catch (error) {
+    res.status(500).json({ error: 'QR generation failed' });
+  }
+});
+
   
   
 module.exports = router;
