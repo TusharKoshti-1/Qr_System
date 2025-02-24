@@ -41,7 +41,7 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
 // Fetch all orders
 router.get('/api/orders', authenticateAdmin, async (req, res) => {
   try {
-    const query = 'SELECT * FROM orders WHERE status = "Pending" ORDER BY created_on DESC';
+    const query = `SELECT * FROM orders WHERE status = 'Pending' ORDER BY created_on DESC`;
     const [results] = await req.db.query(query);
 
     const processedResults = results.map(order => {
