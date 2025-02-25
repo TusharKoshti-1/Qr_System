@@ -28,10 +28,12 @@ router.get('/api/customer/menu', async (req, res) => {
   }
 });
 
-// Submit order
 router.post('/api/customer/orders', async (req, res) => {
-  const { items } = req.body;
-  const{ restaurant_id } = req.query;
+  const { items, restaurant_id } = req.body; // ✅ Fix: Get restaurant_id from body
+
+  if (!restaurant_id) {
+    return res.status(400).json({ error: "restaurant_id is required" });
+  }
 
   try {
     // 1. Get restaurant database name from master DB
@@ -40,20 +42,30 @@ router.post('/api/customer/orders', async (req, res) => {
       [restaurant_id]
     );
 
+    if (!admin || admin.length === 0) {
+      return res.status(404).json({ error: "Restaurant not found" });
+    }
+
+    console.log("Fetched restaurant database:", admin[0].db_name);
+
     // 2. Connect to restaurant's database
     const restaurantDb = await pool.getConnection();
-    await restaurantDb.query(`USE ??`, [admin[0].db_name]);
+    try {
+      await restaurantDb.query(`USE ??`, [admin[0].db_name]);
 
-    // 3. Save order
-    const [result] = await restaurantDb.query(
-      'INSERT INTO orders (items) VALUES (?)',
-      [JSON.stringify(items)]
-    );
-    
-    restaurantDb.release();
-    res.json({ orderId: result.insertId });
+      // 3. Save order
+      const [result] = await restaurantDb.query(
+        'INSERT INTO orders (items) VALUES (?)',
+        [JSON.stringify(items)]
+      );
+
+      res.json({ orderId: result.insertId });
+    } finally {
+      restaurantDb.release(); // ✅ Fix: Always release connection
+    }
   } catch (error) {
-    res.status(500).json({ error: 'Order failed' });
+    console.error("Order Error:", error); // ✅ Fix: Log error details
+    res.status(500).json({ error: "Order failed" });
   }
 });
 
