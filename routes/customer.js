@@ -29,7 +29,7 @@ router.get('/api/customer/menu', async (req, res) => {
 });
 
 router.post('/api/customer/orders', async (req, res) => {
-  const { items, restaurant_id } = req.body; // ✅ Fix: Get restaurant_id from body
+  const { customer_name, phone, items, total_amount, payment_method, restaurant_id } = req.body; // ✅ Fix: Get restaurant_id from body
 
   if (!restaurant_id) {
     return res.status(400).json({ error: "restaurant_id is required" });
@@ -54,10 +54,17 @@ router.post('/api/customer/orders', async (req, res) => {
       await restaurantDb.query(`USE ??`, [admin[0].db_name]);
 
       // 3. Save order
-      const [result] = await restaurantDb.query(
-        'INSERT INTO orders (items) VALUES (?)',
-        [JSON.stringify(items)]
-      );
+      const query = `
+      INSERT INTO orders (customer_name, phone, items, total_amount, payment_method, status)
+      VALUES (?, ?, ?, ?, ?, 'Pending')
+    `;
+    const [result] = await restaurantDb.query(query, [
+      customer_name,
+      phone,
+      JSON.stringify(items),
+      total_amount,
+      payment_method
+    ]);
 
       res.json({ orderId: result.insertId });
     } finally {
