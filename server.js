@@ -51,9 +51,16 @@ app.use(
   })
 );
 
-// WebSocket server initialization
-const wss = new WebSocket.Server({ port: 5001 });
-console.log('WebSocket server running on port 5001');
+// Create HTTPS server for secure WebSockets
+const server = https.createServer(app);
+
+// WebSocket server over HTTPS (wss://)
+const wss = new WebSocket.Server({ server });
+
+wss.on("connection", (ws) => {
+  console.log("Client connected to WebSocket!");
+  ws.send("Hello from the WebSocket server!");
+});
 
 // WebSocket broadcast function
 wss.broadcast = (data) => {
@@ -70,6 +77,7 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Route definitions
 app.use(menuRoutes);
 app.use(orderRoutes);
@@ -79,7 +87,10 @@ app.use(settings);
 app.use(customer);
 app.use(MenuItems);
 app.use(routes);
+
 // Start the server
-app.listen(5000, () => {
-  console.log('Server running on port 5000');
+// Start the server using HTTPS
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} with Secure WebSocket (wss://)`);
 });
