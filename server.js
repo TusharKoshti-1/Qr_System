@@ -58,7 +58,27 @@ app.use(
 const server = https.createServer(app);
 
 // WebSocket server over HTTPS (wss://)
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server, // Your existing server object
+  verifyClient: (info, done) => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://eleven-windows-cheat.loca.lt',
+      'http://localhost:5000',
+      'http://localhost:3001',
+      'https://r21gqnrc-3000.inc1.devtunnels.ms',
+      'https://qr-backend-tusharkoshti-1s-projects.vercel.app',
+      'http://127.0.0.1:8080'
+    ];
+    const origin = info.origin;
+
+    if (allowedOrigins.includes(origin)) {
+      done(true);  // Allow the connection
+    } else {
+      done(false, 403, 'Forbidden');  // Deny the connection
+    }
+  }
+});
 
 wss.on("connection", (ws) => {
   console.log("Client connected to WebSocket!");
