@@ -14,6 +14,8 @@ const settings = require('./routes/settings');
 const visitorInsights = require('./routes/visitorinsight');
 const app = express();
 
+const PORT = process.env.PORT || 5000;
+
 // Serve static files from the "uploads" folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -91,7 +93,6 @@ app.use(routes);
 
 // Start the server
 // Start the server using HTTPS
-const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT} with Secure WebSocket (wss://)`);
 });
