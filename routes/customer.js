@@ -53,4 +53,30 @@ router.post('/api/customer/orders', async (req, res) => {
   }
 });
 
+// API to get all distinct categories
+router.get('/api/customer/categories', async (req, res) => {
+  const { restaurant_id } = req.query;
+  try {
+    // 1. Get restaurant database name from master DB
+    const [admin] = await masterPool.query(
+      'SELECT db_name FROM admins WHERE id = ?',
+      [restaurant_id]
+    );
+
+    // 2. Connect to restaurant's database
+    const restaurantDb = await pool.getConnection();
+    await restaurantDb.query(`USE ??`, [admin[0].db_name]);
+
+
+    const query = 'SELECT DISTINCT category FROM menu';
+    const [results] = await restaurantDb.query(query);
+    restaurantDb.release();
+    const categories = results.map(row => row.category);
+    res.json(categories);
+  } catch (err) {
+    console.error('Error fetching categories:', err);
+    res.status(500).send('Database error');
+  }
+});
+
 module.exports = router;
