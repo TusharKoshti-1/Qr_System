@@ -33,8 +33,11 @@ router.post('/api/customer/orders', async (req, res) => {
   const { restaurant_id, items } = req.body;
 
   try {
-    // 1. Get restaurant database name (same as above)
-    // ...
+    // 1. Get restaurant database name from master DB
+    const [admin] = await masterPool.query(
+      'SELECT db_name FROM admins WHERE id = ?',
+      [restaurant_id]
+    );
 
     // 2. Connect to restaurant's database
     const restaurantDb = await pool.getConnection();
