@@ -65,8 +65,18 @@ router.post('/api/customer/orders', async (req, res) => {
       total_amount,
       payment_method
     ]);
+    const newOrder = {
+      id: result.insertId,
+      customer_name,
+      phone,
+      items,
+      total_amount,
+      payment_method,
+      status: 'Pending'
+    };
+    req.wss.broadcast({ type: "new_order", order: newOrder });
 
-      res.json({ orderId: result.insertId });
+    res.json({ message: 'Order added successfully',orderId: result.insertId });
     } finally {
       restaurantDb.release(); // ✅ Fix: Always release connection
     }
