@@ -30,7 +30,8 @@ router.get('/api/customer/menu', async (req, res) => {
 
 // Submit order
 router.post('/api/customer/orders', async (req, res) => {
-  const { restaurant_id, items } = req.body;
+  const { items } = req.body;
+  const{ restaurant_id } = req.query;
 
   try {
     // 1. Get restaurant database name from master DB
