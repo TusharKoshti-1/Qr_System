@@ -7,14 +7,11 @@ const orderRoutes = require('./routes/order');
 const salesRoutes = require('./routes/sales');
 const path = require('path');
 const MenuItems = require('./routes/menuitems');
-const https = require("https");
 const routes = require('./routes/routes');
 const customer = require('./routes/customer');
 const settings = require('./routes/settings');
 const visitorInsights = require('./routes/visitorinsight');
 const app = express();
-
-const PORT = 5000;
 
 // Serve static files from the "uploads" folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -54,36 +51,10 @@ app.use(
   })
 );
 
-// Create HTTPS server for secure WebSockets
-const server = https.createServer(app);
+// WebSocket server initialization
+const wss = new WebSocket.Server({ port: 5001 });
+console.log('WebSocket server running on port 5001');
 
-// WebSocket server over HTTPS (wss://)
-const wss = new WebSocket.Server({
-  server, // Your existing server object
-  verifyClient: (info, done) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://eleven-windows-cheat.loca.lt',
-      'http://localhost:5000',
-      'http://localhost:3001',
-      'https://r21gqnrc-3000.inc1.devtunnels.ms',
-      'https://qr-backend-tusharkoshti-1s-projects.vercel.app',
-      'http://127.0.0.1:8080'
-    ];
-    const origin = info.origin;
-
-    if (allowedOrigins.includes(origin)) {
-      done(true);  // Allow the connection
-    } else {
-      done(false, 403, 'Forbidden');  // Deny the connection
-    }
-  }
-});
-
-wss.on("connection", (ws) => {
-  console.log("Client connected to WebSocket!");
-  ws.send("Hello from the WebSocket server!");
-});
 
 // WebSocket broadcast function
 wss.broadcast = (data) => {
@@ -112,7 +83,6 @@ app.use(MenuItems);
 app.use(routes);
 
 // Start the server
-// Start the server using HTTPS
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} with Secure WebSocket (wss://)`);
+app.listen(5000, () => {
+  console.log('Server running on port 5000');
 });
