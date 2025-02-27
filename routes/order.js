@@ -107,5 +107,39 @@ router.put("/api/updateorders/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
+// Delete an order
+router.delete("/api/orders/:id", authenticateAdmin, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    
+    // First verify order exists
+    const [checkResult] = await req.db.query(
+      "SELECT id FROM orders WHERE id = ?",
+      [orderId]
+    );
+
+    if (checkResult.length === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Delete order from database
+    const [result] = await req.db.query(
+      "DELETE FROM orders WHERE id = ?",
+      [orderId]
+    );
+
+    // Broadcast deletion to WebSocket clients
+    req.wss.broadcast({ 
+      type: "delete_order", 
+      id: orderId 
+    });
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("Error deleting order:", err);
+    res.status(500).send("Database error");
+  }
+});
+
 
 module.exports = router;
