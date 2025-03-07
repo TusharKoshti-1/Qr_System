@@ -104,7 +104,7 @@ CREATE TABLE `settings` (
   `phone` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `operatingHours` varchar(100) DEFAULT NULL,
-  `taxRate` decimal(5,2) DEFAULT NULL,
+  `upiId` varchar(255) DEFAULT NULL,
   `isOpen` tinyint(1) DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -3,12 +3,8 @@ const router = express.Router();
 const connection = require("../db/config"); 
 const qrcode = require('qrcode');
 const { authenticateAdmin } = require('../middleware/middleware');
- // Import the database connection
 
 
-
-// GET settings API: returns the single settings row,
-// GET settings API
 router.get('/api/settings', authenticateAdmin, async (req, res) => {
   try {
     const query = 'SELECT * FROM settings LIMIT 1';
@@ -21,12 +17,12 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
         phone: '123-456-7890',
         email: 'example@example.com',
         operatingHours: '9 AM - 9 PM',
-        taxRate: 10.00,
+        upiId: '',
         isOpen: true,
       };
 
       const insertQuery = `
-        INSERT INTO settings (restaurantName, address, phone, email, operatingHours, taxRate, isOpen)
+        INSERT INTO settings (restaurantName, address, phone, email, operatingHours, upiId, isOpen)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
       const [insertResult] = await req.db.query(insertQuery, [
@@ -35,7 +31,7 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
         defaultSettings.phone,
         defaultSettings.email,
         defaultSettings.operatingHours,
-        defaultSettings.taxRate,
+        defaultSettings.upiId,
         defaultSettings.isOpen
       ]);
 
@@ -56,7 +52,7 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
     const { restaurantName, address, phone, email, operatingHours, taxRate, isOpen } = req.body;
     const query = `
       UPDATE settings
-      SET restaurantName = ?, address = ?, phone = ?, email = ?, operatingHours = ?, taxRate = ?, isOpen = ?
+      SET restaurantName = ?, address = ?, phone = ?, email = ?, operatingHours = ?, upiId = ?, isOpen = ?
       WHERE id = 1
     `;
     await req.db.query(query, [
@@ -65,7 +61,7 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
       phone,
       email,
       operatingHours,
-      taxRate,
+      upiId,
       isOpen
     ]);
     res.json({ message: 'Settings updated successfully' });
@@ -79,7 +75,7 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   try {
-    const url = `https://yourdomain.com/welcome?restaurant_id=${req.admin.id}`;
+    const url = `${import.meta.env.WEB_URL}/welcome?restaurant_id=${req.admin.id}`;
     const qrImage = await qrcode.toDataURL(url);
     res.json({ qrImage });
   } catch (error) {
