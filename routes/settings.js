@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { masterPool } = require('../db/config');
+const jwt = require('jsonwebtoken');
 const qrcode = require('qrcode');
 const { authenticateAdmin } = require('../middleware/middleware');
 
