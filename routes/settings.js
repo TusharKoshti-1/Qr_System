@@ -75,7 +75,7 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   try {
-    const url = `${import.meta.env.WEB_URL}/welcome?restaurant_id=${req.admin.id}`;
+    const url = `${process.env.WEB_URL}/welcome?restaurant_id=${req.admin.id}`;
     const qrImage = await qrcode.toDataURL(url);
     res.json({ qrImage });
   } catch (error) {
