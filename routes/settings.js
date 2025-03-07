@@ -75,19 +75,70 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   try {
-    // Get restaurant details
-    const [settings] = await req.db.query('SELECT * FROM settings LIMIT 1');
+    // 1. Verify environment configuration
+    if (!process.env.WEB_URL) {
+      throw new Error('WEB_URL environment variable not configured');
+    }
+
+    // 2. Fetch restaurant settings with error handling
+    const [settings] = await req.db.query(`
+      SELECT restaurantName, address, upiId 
+      FROM settings 
+      LIMIT 1
+    `);
+
+    if (!settings?.length) {
+      return res.status(404).json({ 
+        error: 'Restaurant settings not found',
+        solution: 'Configure restaurant settings first'
+      });
+    }
+
     const restaurant = settings[0];
 
-    const url = `${process.env.WEB_URL}/welcome?restaurant_id=${req.admin.id}`;
-    const qrImage = await qrcode.toDataURL(url);
-    res.json({ 
+    // 3. Validate required fields
+    if (!restaurant.restaurantName || !restaurant.address) {
+      throw new Error('Incomplete restaurant information in settings');
+    }
+
+    // 4. Construct secure URL with validation
+    const restaurantId = req.admin?.id;
+    if (!restaurantId) {
+      throw new Error('Invalid restaurant identification');
+    }
+
+    const url = new URL(`${process.env.WEB_URL}/welcome`);
+    url.searchParams.set('restaurant_id', restaurantId);
+    
+    // 5. Generate QR code with error handling
+    const qrImage = await qrcode.toDataURL(url.toString(), {
+      errorCorrectionLevel: 'H',
+      margin: 2,
+      scale: 8
+    });
+
+    res.json({
       qrImage,
       restaurantName: restaurant.restaurantName,
-      address: restaurant.address
+      address: restaurant.address,
+      upiId: restaurant.upiId
     });
+
   } catch (error) {
-    res.status(500).json({ error: 'QR generation failed' });
+    console.error('[QR Generation Error]', {
+      message: error.message,
+      stack: error.stack,
+      adminId: req.admin?.id,
+      timestamp: new Date().toISOString()
+    });
+
+    res.status(500).json({
+      error: 'QR generation failed',
+      debugInfo: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack
+      } : undefined
+    });
   }
 });
 
