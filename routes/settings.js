@@ -106,7 +106,17 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
     // 4. Construct secure URL with validation
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const connection = await masterPool.getConnection();
-    const restaurantId = await connection.query(`SELECT id FROM admins WHERE db_name='??'`, [decoded.dbName]);
+    const [rows] = await connection.query(
+      `SELECT id FROM admins WHERE db_name = ?`, 
+      [decoded.dbName]
+    );
+    if (!rows || rows.length === 0) {
+      throw new Error('No restaurant found for this database');
+  }
+    const restaurantId = rows[0].id;
+    if (!Number.isInteger(restaurantId)) {
+      throw new Error('Invalid restaurant ID format');
+  }
     if (!restaurantId) {
       throw new Error('Invalid restaurant identification');
     }
@@ -144,6 +154,10 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
       } : undefined
     });
   }
+  finally {
+    // Always release connection back to pool
+    connection.release();
+}
 });
 
   
