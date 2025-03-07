@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const connection = require("../db/config"); 
+const { masterPool } = require('../db/config');
 const qrcode = require('qrcode');
 const { authenticateAdmin } = require('../middleware/middleware');
 
@@ -74,6 +74,7 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
   try {
     // 1. Verify environment configuration
     if (!process.env.WEB_URL) {
@@ -102,7 +103,9 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
     }
 
     // 4. Construct secure URL with validation
-    const restaurantId = req.admin?.id;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const connection = await masterPool.getConnection();
+    const restaurantId = await connection.query(`SELECT id FROM admins WHERE db_name='??'`, [decoded.dbName]);
     if (!restaurantId) {
       throw new Error('Invalid restaurant identification');
     }
