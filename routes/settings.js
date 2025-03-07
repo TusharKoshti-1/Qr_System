@@ -75,9 +75,17 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   try {
+    // Get restaurant details
+    const [settings] = await req.db.query('SELECT * FROM settings LIMIT 1');
+    const restaurant = settings[0];
+
     const url = `${process.env.WEB_URL}/welcome?restaurant_id=${req.admin.id}`;
     const qrImage = await qrcode.toDataURL(url);
-    res.json({ qrImage });
+    res.json({ 
+      qrImage,
+      restaurantName: restaurant.restaurantName,
+      address: restaurant.address
+    });
   } catch (error) {
     res.status(500).json({ error: 'QR generation failed' });
   }
