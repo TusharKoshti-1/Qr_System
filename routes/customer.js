@@ -112,4 +112,29 @@ router.get('/api/customer/categories', async (req, res) => {
   }
 });
 
+router.get('/api/customer/upiId', async (req, res) => {
+  const { restaurant_id } = req.query;
+  try {
+    // 1. Get restaurant database name from master DB
+    const [admin] = await masterPool.query(
+      'SELECT db_name FROM admins WHERE id = ?',
+      [restaurant_id]
+    );
+
+    // 2. Connect to restaurant's database
+    const restaurantDb = await pool.getConnection();
+    await restaurantDb.query(`USE ??`, [admin[0].db_name]);
+
+
+    const query = 'SELECT upiID FROM settings';
+    const [results] = await restaurantDb.query(query);
+    restaurantDb.release();
+    res.json(results[0].upiID);
+  } catch (err) {
+    console.error('Error fetching upiID:', err);
+    res.status(500).send('Database error');
+  }
+});
+
+
 module.exports = router;

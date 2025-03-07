@@ -50,7 +50,7 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
 // PUT settings API
 router.put('/api/settings', authenticateAdmin, async (req, res) => {
   try {
-    const { restaurantName, address, phone, email, operatingHours, taxRate, isOpen } = req.body;
+    const { restaurantName, address, phone, email, operatingHours, upiId, isOpen } = req.body;
     const query = `
       UPDATE settings
       SET restaurantName = ?, address = ?, phone = ?, email = ?, operatingHours = ?, upiId = ?, isOpen = ?
