@@ -160,6 +160,21 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
 }
 });
 
+router.put('/api/restaurant-name', authenticateAdmin, async (req, res) => {
+  try {
+    const [results] = await req.db.query(
+      'SELECT restaurantName FROM settings LIMIT 1'
+    );
+    
+    res.json({
+      name: results[0]?.restaurantName || 'Our Restaurant'
+    });
+  } catch (err) {
+    console.error('Error fetching restaurant name:', err);
+    res.status(500).json({ name: 'Our Restaurant' });
+  }
+});
+
   
   
 module.exports = router;
