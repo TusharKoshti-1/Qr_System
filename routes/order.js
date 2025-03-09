@@ -9,13 +9,15 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
   try {
     const { customer_name, phone, items, total_amount, payment_method } = req.body;
 
+    const phoneToInsert = phone || null;
+
     const query = `
       INSERT INTO orders (customer_name, phone, items, total_amount, payment_method, status)
       VALUES (?, ?, ?, ?, ?, 'Pending')
     `;
     const [result] = await req.db.query(query, [
       customer_name,
-      phone,
+      phoneToInsert,
       JSON.stringify(items),
       total_amount,
       payment_method
@@ -24,7 +26,7 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
     const newOrder = {
       id: result.insertId,
       customer_name,
-      phone,
+      phone: phoneToInsert,
       items,
       total_amount,
       payment_method,
