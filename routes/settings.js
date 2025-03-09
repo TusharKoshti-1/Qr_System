@@ -2,9 +2,23 @@ const express = require("express");
 const router = express.Router();
 const { masterPool } = require('../db/config');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const { createClient } = require('@supabase/supabase-js');
 const qrcode = require('qrcode');
 const { authenticateAdmin } = require('../middleware/middleware');
 
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 20 * 1024 * 1024 // Limit file size to 20 MB
+  }
+});
 
 router.get('/api/settings', authenticateAdmin, async (req, res) => {
   try {
