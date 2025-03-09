@@ -106,14 +106,15 @@ CREATE TABLE `settings` (
   `operatingHours` varchar(100) DEFAULT NULL,
   `upiId` varchar(255) DEFAULT NULL,
   `isOpen` tinyint(1) DEFAULT '0',
+  `profile_photo` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Insert default settings data
-INSERT INTO `settings` (`id`, `restaurantName`, `address`, `phone`, `email`, `operatingHours`, `taxRate`, `isOpen`, `created_at`, `updated_at`)
-VALUES (1, 'My Restaurant', '123 Main Street', '123-456-7890', 'example@example.com', '9 AM - 9 PM', 10.00, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO `settings` (`id`, `restaurantName`, `address`, `phone`, `email`, `operatingHours`, `upiId`, `isOpen`, `created_at`, `updated_at`)
+VALUES (1, 'My Restaurant', '123 Main Street', '123-456-7890', 'example@example.com', '9 AM - 9 PM', '12345678@ybl', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- =====================================================
 -- End of schema
