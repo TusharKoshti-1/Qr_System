@@ -160,7 +160,7 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
 }
 });
 
-router.put('/api/restaurant-name', authenticateAdmin, async (req, res) => {
+router.get('/api/restaurant-name', authenticateAdmin, async (req, res) => {
   try {
     const [results] = await req.db.query(
       'SELECT restaurantName FROM settings LIMIT 1'
