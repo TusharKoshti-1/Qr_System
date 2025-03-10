@@ -90,13 +90,12 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
+  let connection; // Declare connection here
   try {
-    // 1. Verify environment configuration
     if (!process.env.WEB_URL) {
       throw new Error('WEB_URL environment variable not configured');
     }
 
-    // 2. Fetch restaurant settings with error handling
     const [settings] = await req.db.query(`
       SELECT restaurantName, address, upiId 
       FROM settings 
@@ -112,33 +111,28 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
 
     const restaurant = settings[0];
 
-    // 3. Validate required fields
     if (!restaurant.restaurantName || !restaurant.address) {
       throw new Error('Incomplete restaurant information in settings');
     }
 
-    // 4. Construct secure URL with validation
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const connection = await masterPool.getConnection();
+    connection = await masterPool.getConnection(); // Assign connection
     const [rows] = await connection.query(
       `SELECT id FROM admins WHERE db_name = ?`, 
       [decoded.dbName]
     );
     if (!rows || rows.length === 0) {
       throw new Error('No restaurant found for this database');
-  }
+    }
+
     const restaurantId = rows[0].id;
     if (!Number.isInteger(restaurantId)) {
       throw new Error('Invalid restaurant ID format');
-  }
-    if (!restaurantId) {
-      throw new Error('Invalid restaurant identification');
     }
 
     const url = new URL(`${process.env.WEB_URL}/welcome`);
     url.searchParams.set('restaurant_id', restaurantId);
-    
-    // 5. Generate QR code with error handling
+
     const qrImage = await qrcode.toDataURL(url.toString(), {
       errorCorrectionLevel: 'H',
       margin: 2,
@@ -167,12 +161,11 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
         stack: error.stack
       } : undefined
     });
+  } finally {
+    if (connection) connection.release(); // Release only if connection exists
   }
-  finally {
-    // Always release connection back to pool
-    connection.release();
-}
 });
+
 
 router.get('/api/restaurant-name', authenticateAdmin, async (req, res) => {
   try {
