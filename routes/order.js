@@ -47,11 +47,11 @@ router.get('/api/orders', authenticateAdmin, async (req, res) => {
     const [results] = await req.db.query(query);
 
     const processedResults = results.map(order => {
-      try {
-        order.items = JSON.parse(order.items);
-      } catch (error) {
-        console.error(`Error parsing items for order ID ${order.id}:`, error);
-      }
+      // try {
+      //   // order.items = JSON.parse(order.items);
+      // } catch (error) {
+      //   console.error(`Error parsing items for order ID ${order.id}:`, error);
+      // }
       return order;
     });
 
