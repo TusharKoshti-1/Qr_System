@@ -46,7 +46,7 @@ router.post('/api/customer/orders', async (req, res) => {
       return res.status(404).json({ error: "Restaurant not found" });
     }
 
-    console.log("Fetched restaurant database:", admin[0].db_name);
+    // console.log("Fetched restaurant database:", admin[0].db_name);
 
     // 2. Connect to restaurant's database
     const restaurantDb = await pool.getConnection();

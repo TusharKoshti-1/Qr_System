@@ -191,49 +191,26 @@ router.post('/api/upload-profile-photo',
     }
 
     try {
-      // Generate unique filename
-      const fileExt = req.file.originalname.split('.').pop();
-      const fileName = `profile-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const { buffer, mimetype } = req.file;
 
-      // Upload to Supabase Storage
-      const { error } = await supabase.storage
-        .from('profile_photos')
-        .upload(fileName, req.file.buffer, {
-          contentType: req.file.mimetype,
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('profile_photos')
-        .getPublicUrl(fileName);
-
-      // Update settings table
       const updateQuery = `
         UPDATE settings 
-        SET profile_photo = ?
+        SET profile_photo_data = ?, profile_photo_mime = ?
         WHERE id = 1
       `;
-      await req.db.query(updateQuery, [urlData.publicUrl]);
+      await req.db.query(updateQuery, [buffer, mimetype]);
+
+      // Convert to base64 for immediate response
+      const photoData = buffer.toString('base64');
+      const photoUrl = `data:${mimetype};base64,${photoData}`;
 
       res.json({
         message: 'Profile photo updated successfully',
-        profilePhoto: urlData.publicUrl
+        profilePhoto: photoUrl
       });
 
     } catch (err) {
       console.error('Profile upload error:', err);
-      
-      // Cleanup failed upload
-      if (fileName) {
-        await supabase.storage
-          .from('profile_photos')
-          .remove([fileName]);
-      }
-
       res.status(500).send('Error uploading profile photo');
     }
   }
@@ -242,12 +219,18 @@ router.post('/api/upload-profile-photo',
 router.get('/api/user/profile', authenticateAdmin, async (req, res) => {
   try {
     const [user] = await req.db.query(
-      'SELECT restaurantName, profile_photo FROM settings WHERE id = 1',
+      'SELECT restaurantName, profile_photo_data, profile_photo_mime FROM settings WHERE id = 1'
     );
     
+    let photoUrl = null;
+    if (user[0]?.profile_photo_data) {
+      const photoData = user[0].profile_photo_data.toString('base64');
+      photoUrl = `data:${user[0].profile_photo_mime};base64,${photoData}`;
+    }
+
     res.json({
       name: user[0].restaurantName,
-      photoUrl: user[0].profile_photo || null
+      photoUrl: photoUrl
     });
   } catch (err) {
     console.error('Error fetching profile:', err);
