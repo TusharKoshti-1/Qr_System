@@ -31,7 +31,7 @@ async function getTopSellers(restaurantDb) {
         m.category,
         ti.total_quantity AS quantity_sold
       FROM TopItems ti
-      JOIN menu m ON m.name = ti.item_name
+      JOIN menu m ON m.name COLLATE utf8mb4_unicode_ci = ti.item_name COLLATE utf8mb4_unicode_ci
       ORDER BY ti.total_quantity DESC;
     `;
     const [results] = await restaurantDb.query(query);
