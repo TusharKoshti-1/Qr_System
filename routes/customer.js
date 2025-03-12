@@ -28,30 +28,37 @@ router.get('/api/customer/menu', async (req, res) => {
     const itemCounts = {};
 
     // Count occurrences of each item across all orders
-    orders.forEach((order) => {
-      let items;
-      try {
-        // Check for the specific invalid format
-        if (typeof order.items === 'string' && order.items.includes('[object Object]')) {
-          console.warn(`Skipping invalid items format: ${order.items}`);
-          items = []; // Treat as empty array
-        } else {
-          items = JSON.parse(order.items || '[]');
-        }
+    orders.forEach((order, index) => {
+      let items = [];
+      console.log(`Order ${index + 1}: items type=${typeof order.items}, value=${order.items}`); // Debug log
 
-        if (Array.isArray(items)) {
-          items.forEach((item) => {
-            if (item.id) {
-              itemCounts[item.id] = (itemCounts[item.id] || 0) + (item.quantity || 1);
+      if (typeof order.items !== 'string') {
+        console.warn(`Order ${index + 1}: items is not a string, type=${typeof order.items}, value=${order.items}`);
+      } else {
+        try {
+          // Handle invalid formats explicitly
+          if (order.items.includes('[object Object]')) {
+            console.warn(`Order ${index + 1}: Skipping invalid items format: ${order.items}`);
+          } else if (order.items.trim() === '') {
+            console.warn(`Order ${index + 1}: Empty items string`);
+          } else {
+            items = JSON.parse(order.items);
+            if (!Array.isArray(items)) {
+              console.warn(`Order ${index + 1}: Parsed items is not an array: ${order.items}`);
+              items = [];
             }
-          });
-        } else {
-          console.warn(`Invalid items format in order: ${order.items}`);
+          }
+        } catch (parseError) {
+          console.error(`Order ${index + 1}: Failed to parse items: ${order.items}`, parseError);
         }
-      } catch (parseError) {
-        console.error(`Failed to parse items: ${order.items}`, parseError);
-        items = []; // Fallback to empty array on parse failure
       }
+
+      // Process items if valid
+      items.forEach((item) => {
+        if (item.id) {
+          itemCounts[item.id] = (itemCounts[item.id] || 0) + (item.quantity || 1);
+        }
+      });
     });
 
     // Sort items by count and get top 5
@@ -74,7 +81,7 @@ router.get('/api/customer/menu', async (req, res) => {
   }
 });
 
-// Create customer order (unchanged)
+// Create customer order
 router.post('/api/customer/orders', async (req, res) => {
   const { customer_name, phone, items, total_amount, payment_method, restaurant_id } = req.body;
 
@@ -99,10 +106,11 @@ router.post('/api/customer/orders', async (req, res) => {
         INSERT INTO orders (customer_name, phone, items, total_amount, payment_method, status)
         VALUES (?, ?, ?, ?, ?, 'Pending')
       `;
+      const itemsJson = JSON.stringify(items); // Ensure items is properly stringified
       const [result] = await restaurantDb.query(query, [
         customer_name,
         phone,
-        JSON.stringify(items),
+        itemsJson,
         total_amount,
         payment_method,
       ]);
@@ -110,7 +118,7 @@ router.post('/api/customer/orders', async (req, res) => {
         id: result.insertId,
         customer_name,
         phone,
-        items,
+        items, // Return original items object, not stringified
         total_amount,
         payment_method,
         status: 'Pending',
