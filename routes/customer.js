@@ -2,6 +2,40 @@ const { pool, masterPool } = require('../db/config');
 const express = require('express');
 const router = express.Router();
 
+// Helper function to calculate top items
+async function getTopItems(restaurantDb) {
+  try {
+    // Query to unnest JSON items and aggregate
+    const query = `
+      SELECT 
+        JSON_EXTRACT(item.value, '$.name') AS name,
+        SUM(JSON_EXTRACT(item.value, '$.quantity')) AS quantity,
+        SUM(JSON_EXTRACT(item.value, '$.price') * JSON_EXTRACT(item.value, '$.quantity')) AS revenue
+      FROM orders
+      CROSS JOIN JSON_TABLE(
+        items,
+        '$[*]' COLUMNS (
+          value JSON PATH '$'
+        )
+      ) AS item
+      WHERE status = 'Completed'
+      GROUP BY name
+      ORDER BY quantity DESC
+      LIMIT 5
+    `;
+    const [results] = await restaurantDb.query(query);
+
+    return results.map((row) => ({
+      name: JSON.parse(row.name), // Remove quotes from stringified name
+      quantity: parseInt(row.quantity, 10),
+      revenue: parseFloat(row.revenue),
+    }));
+  } catch (err) {
+    console.error('Error fetching top items:', err);
+    return [];
+  }
+}
+
 // Get restaurant menu with best sellers
 router.get('/api/customer/menu', async (req, res) => {
   const { restaurant_id } = req.query;
@@ -23,54 +57,14 @@ router.get('/api/customer/menu', async (req, res) => {
     // 3. Fetch menu
     const [menu] = await restaurantDb.query('SELECT id, name, price, image, category FROM menu');
 
-    // 4. Fetch order data to determine best sellers
-    const [orders] = await restaurantDb.query('SELECT items FROM orders WHERE items IS NOT NULL');
-    const itemCounts = {};
-
-    // Count occurrences of each item across all orders
-    orders.forEach((order, index) => {
-      let items = [];
-      console.log(`Order ${index + 1}: items type=${typeof order.items}, value=${order.items}`); // Debug log
-
-      if (typeof order.items !== 'string') {
-        console.warn(`Order ${index + 1}: items is not a string, type=${typeof order.items}, value=${order.items}`);
-      } else {
-        try {
-          // Handle invalid formats explicitly
-          if (order.items.includes('[object Object]')) {
-            console.warn(`Order ${index + 1}: Skipping invalid items format: ${order.items}`);
-          } else if (order.items.trim() === '') {
-            console.warn(`Order ${index + 1}: Empty items string`);
-          } else {
-            items = JSON.parse(order.items);
-            if (!Array.isArray(items)) {
-              console.warn(`Order ${index + 1}: Parsed items is not an array: ${order.items}`);
-              items = [];
-            }
-          }
-        } catch (parseError) {
-          console.error(`Order ${index + 1}: Failed to parse items: ${order.items}`, parseError);
-        }
-      }
-
-      // Process items if valid
-      items.forEach((item) => {
-        if (item.id) {
-          itemCounts[item.id] = (itemCounts[item.id] || 0) + (item.quantity || 1);
-        }
-      });
-    });
-
-    // Sort items by count and get top 5
-    const sortedItems = Object.entries(itemCounts)
-      .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, 5) // Top 5 best sellers
-      .map(([itemId]) => itemId);
+    // 4. Fetch top items
+    const topItems = await getTopItems(restaurantDb);
+    const topItemNames = topItems.map(item => item.name);
 
     // 5. Add bestSeller flag to menu items
     const menuWithBestSellers = menu.map((item) => ({
       ...item,
-      bestSeller: sortedItems.includes(String(item.id)),
+      bestSeller: topItemNames.includes(item.name),
     }));
 
     restaurantDb.release();
@@ -81,7 +75,7 @@ router.get('/api/customer/menu', async (req, res) => {
   }
 });
 
-// Create customer order
+// Create customer order (unchanged)
 router.post('/api/customer/orders', async (req, res) => {
   const { customer_name, phone, items, total_amount, payment_method, restaurant_id } = req.body;
 
@@ -106,7 +100,7 @@ router.post('/api/customer/orders', async (req, res) => {
         INSERT INTO orders (customer_name, phone, items, total_amount, payment_method, status)
         VALUES (?, ?, ?, ?, ?, 'Pending')
       `;
-      const itemsJson = JSON.stringify(items); // Ensure items is properly stringified
+      const itemsJson = JSON.stringify(items);
       const [result] = await restaurantDb.query(query, [
         customer_name,
         phone,
@@ -118,7 +112,7 @@ router.post('/api/customer/orders', async (req, res) => {
         id: result.insertId,
         customer_name,
         phone,
-        items, // Return original items object, not stringified
+        items,
         total_amount,
         payment_method,
         status: 'Pending',
@@ -132,6 +126,27 @@ router.post('/api/customer/orders', async (req, res) => {
   } catch (error) {
     console.error('Order Error:', error);
     res.status(500).json({ error: 'Order failed' });
+  }
+});
+
+// Get top products (standalone endpoint)
+router.get('/api/sales/top-products', authenticateAdmin, async (req, res) => {
+  try {
+    const restaurantDb = req.db; // Assuming authenticateAdmin sets this
+    const topItems = await getTopItems(restaurantDb);
+
+    const topProducts = topItems.map((item, index) => ({
+      rank: index + 1,
+      name: item.name,
+      quantity: item.quantity,
+      revenue: item.revenue,
+      popularity: Math.min(100, item.quantity * 10), // Adjust as needed
+    }));
+
+    res.json(topProducts);
+  } catch (err) {
+    console.error('Error fetching top products:', err);
+    res.status(500).json({ message: 'Database error' });
   }
 });
 
