@@ -1,6 +1,8 @@
 const { pool, masterPool } = require('../db/config');
 const express = require('express');
 const router = express.Router();
+const { authenticateAdmin } = require('../middleware/middleware');
+
 
 // Helper function to calculate top items
 async function getTopItems(restaurantDb) {
