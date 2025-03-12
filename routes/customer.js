@@ -1,38 +1,52 @@
 const { pool, masterPool } = require('../db/config');
 const express = require('express');
 const router = express.Router();
-// const { authenticateAdmin } = require('../middleware/middleware');
 
-// Helper function to calculate top items
-async function getTopItems(restaurantDb) {
+// Helper function to fetch top sellers with menu details
+async function getTopSellers(restaurantDb) {
   try {
-    // Query to unnest JSON items and aggregate
     const query = `
+      WITH TopItems AS (
+        SELECT 
+          item.name AS item_name,
+          SUM(item.quantity) AS total_quantity
+        FROM orders
+        CROSS JOIN JSON_TABLE(
+          items,
+          '$[*]' COLUMNS (
+            name VARCHAR(255) PATH '$.name',
+            quantity INT PATH '$.quantity'
+          )
+        ) AS item
+        WHERE status = 'Completed'
+        GROUP BY item.name
+        ORDER BY total_quantity DESC
+        LIMIT 7
+      )
       SELECT 
-        JSON_EXTRACT(item.value, '$.name') AS name,
-        SUM(JSON_EXTRACT(item.value, '$.quantity')) AS quantity,
-        SUM(JSON_EXTRACT(item.value, '$.price') * JSON_EXTRACT(item.value, '$.quantity')) AS revenue
-      FROM orders
-      CROSS JOIN JSON_TABLE(
-        items,
-        '$[*]' COLUMNS (
-          value JSON PATH '$'
-        )
-      ) AS item
-      WHERE status = 'Completed'
-      GROUP BY name
-      ORDER BY quantity DESC
-      LIMIT 5
+        m.id,
+        m.name,
+        m.price,
+        m.image,
+        m.category,
+        ti.total_quantity AS quantity_sold
+      FROM TopItems ti
+      JOIN menu m ON m.name = ti.item_name
+      ORDER BY ti.total_quantity DESC;
     `;
     const [results] = await restaurantDb.query(query);
 
-    return results.map((row) => ({
-      name: JSON.parse(row.name), // Remove quotes from stringified name
-      quantity: parseInt(row.quantity, 10),
-      revenue: parseFloat(row.revenue),
+    return results.map((row, index) => ({
+      rank: index + 1,
+      id: row.id,
+      name: row.name,
+      price: parseFloat(row.price),
+      image: row.image,
+      category: row.category,
+      quantitySold: parseInt(row.quantity_sold, 10),
     }));
   } catch (err) {
-    console.error('Error fetching top items:', err);
+    console.error('Error fetching top sellers:', err);
     return [];
   }
 }
@@ -47,17 +61,31 @@ router.get('/api/customer/menu', async (req, res) => {
       'SELECT db_name FROM admins WHERE id = ?',
       [restaurant_id]
     );
+    if (!admin || admin.length === 0) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
 
     // 2. Connect to restaurant's database
     const restaurantDb = await pool.getConnection();
     await restaurantDb.query(`USE ??`, [admin[0].db_name]);
 
     // 3. Fetch menu
-    const [menu] = await restaurantDb.query('SELECT * FROM menu');
-    restaurantDb.release();
+    const [menu] = await restaurantDb.query('SELECT id, name, price, image, category FROM menu');
 
-    res.json(menu);
+    // 4. Fetch top sellers
+    const topSellers = await getTopSellers(restaurantDb);
+    const topSellerIds = topSellers.map(item => item.id);
+
+    // 5. Add bestSeller flag to menu items
+    const menuWithBestSellers = menu.map((item) => ({
+      ...item,
+      bestSeller: topSellerIds.includes(item.id),
+    }));
+
+    restaurantDb.release();
+    res.json(menuWithBestSellers);
   } catch (error) {
+    console.error('Error fetching menu:', error);
     res.status(500).json({ error: 'Error fetching menu' });
   }
 });
@@ -80,16 +108,8 @@ router.get('/api/customer/top-sellers', async (req, res) => {
     const restaurantDb = await pool.getConnection();
     await restaurantDb.query(`USE ??`, [admin[0].db_name]);
 
-    // 3. Fetch top items
-    const topItems = await getTopItems(restaurantDb);
-
-    // 4. Format response for customers
-    const topSellers = topItems.map((item, index) => ({
-      rank: index + 1,
-      name: item.name,
-      quantitySold: item.quantity,
-      totalRevenue: item.revenue,
-    }));
+    // 3. Fetch top sellers with menu details
+    const topSellers = await getTopSellers(restaurantDb);
 
     restaurantDb.release();
     res.json(topSellers);
