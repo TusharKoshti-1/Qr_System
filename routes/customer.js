@@ -29,8 +29,16 @@ router.get('/api/customer/menu', async (req, res) => {
 
     // Count occurrences of each item across all orders
     orders.forEach((order) => {
+      let items;
       try {
-        const items = JSON.parse(order.items || '[]');
+        // Check for the specific invalid format
+        if (typeof order.items === 'string' && order.items.includes('[object Object]')) {
+          console.warn(`Skipping invalid items format: ${order.items}`);
+          items = []; // Treat as empty array
+        } else {
+          items = JSON.parse(order.items || '[]');
+        }
+
         if (Array.isArray(items)) {
           items.forEach((item) => {
             if (item.id) {
@@ -42,6 +50,7 @@ router.get('/api/customer/menu', async (req, res) => {
         }
       } catch (parseError) {
         console.error(`Failed to parse items: ${order.items}`, parseError);
+        items = []; // Fallback to empty array on parse failure
       }
     });
 
