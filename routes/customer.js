@@ -1,8 +1,7 @@
 const { pool, masterPool } = require('../db/config');
 const express = require('express');
 const router = express.Router();
-const { authenticateAdmin } = require('../middleware/middleware');
-
+// const { authenticateAdmin } = require('../middleware/middleware');
 
 // Helper function to calculate top items
 async function getTopItems(restaurantDb) {
@@ -48,6 +47,31 @@ router.get('/api/customer/menu', async (req, res) => {
       'SELECT db_name FROM admins WHERE id = ?',
       [restaurant_id]
     );
+
+    // 2. Connect to restaurant's database
+    const restaurantDb = await pool.getConnection();
+    await restaurantDb.query(`USE ??`, [admin[0].db_name]);
+
+    // 3. Fetch menu
+    const [menu] = await restaurantDb.query('SELECT * FROM menu');
+    restaurantDb.release();
+
+    res.json(menu);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching menu' });
+  }
+});
+
+// Get top sellers for customers
+router.get('/api/customer/top-sellers', async (req, res) => {
+  const { restaurant_id } = req.query;
+
+  try {
+    // 1. Get restaurant database name from master DB
+    const [admin] = await masterPool.query(
+      'SELECT db_name FROM admins WHERE id = ?',
+      [restaurant_id]
+    );
     if (!admin || admin.length === 0) {
       return res.status(404).json({ error: 'Restaurant not found' });
     }
@@ -56,28 +80,26 @@ router.get('/api/customer/menu', async (req, res) => {
     const restaurantDb = await pool.getConnection();
     await restaurantDb.query(`USE ??`, [admin[0].db_name]);
 
-    // 3. Fetch menu
-    const [menu] = await restaurantDb.query('SELECT id, name, price, image, category FROM menu');
-
-    // 4. Fetch top items
+    // 3. Fetch top items
     const topItems = await getTopItems(restaurantDb);
-    const topItemNames = topItems.map(item => item.name);
 
-    // 5. Add bestSeller flag to menu items
-    const menuWithBestSellers = menu.map((item) => ({
-      ...item,
-      bestSeller: topItemNames.includes(item.name),
+    // 4. Format response for customers
+    const topSellers = topItems.map((item, index) => ({
+      rank: index + 1,
+      name: item.name,
+      quantitySold: item.quantity,
+      totalRevenue: item.revenue,
     }));
 
     restaurantDb.release();
-    res.json(menuWithBestSellers);
+    res.json(topSellers);
   } catch (error) {
-    console.error('Error fetching menu:', error);
-    res.status(500).json({ error: 'Error fetching menu' });
+    console.error('Error fetching top sellers:', error);
+    res.status(500).json({ error: 'Error fetching top sellers' });
   }
 });
 
-// Create customer order (unchanged)
+// Create customer order
 router.post('/api/customer/orders', async (req, res) => {
   const { customer_name, phone, items, total_amount, payment_method, restaurant_id } = req.body;
 
@@ -131,28 +153,7 @@ router.post('/api/customer/orders', async (req, res) => {
   }
 });
 
-// Get top products (standalone endpoint)
-router.get('/api/sales/top-products', authenticateAdmin, async (req, res) => {
-  try {
-    const restaurantDb = req.db; // Assuming authenticateAdmin sets this
-    const topItems = await getTopItems(restaurantDb);
-
-    const topProducts = topItems.map((item, index) => ({
-      rank: index + 1,
-      name: item.name,
-      quantity: item.quantity,
-      revenue: item.revenue,
-      popularity: Math.min(100, item.quantity * 10), // Adjust as needed
-    }));
-
-    res.json(topProducts);
-  } catch (err) {
-    console.error('Error fetching top products:', err);
-    res.status(500).json({ message: 'Database error' });
-  }
-});
-
-// Get all distinct categories (unchanged)
+// Get all distinct categories
 router.get('/api/customer/categories', async (req, res) => {
   const { restaurant_id } = req.query;
   try {
@@ -175,7 +176,7 @@ router.get('/api/customer/categories', async (req, res) => {
   }
 });
 
-// Get UPI ID (unchanged)
+// Get UPI ID
 router.get('/api/customer/upiId', async (req, res) => {
   const { restaurant_id } = req.query;
   try {
@@ -197,7 +198,7 @@ router.get('/api/customer/upiId', async (req, res) => {
   }
 });
 
-// Get restaurant name (unchanged)
+// Get restaurant name
 router.get('/api/customer/restaurant-name', async (req, res) => {
   const { restaurant_id } = req.query;
   try {
