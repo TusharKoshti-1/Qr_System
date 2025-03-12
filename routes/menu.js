@@ -25,29 +25,44 @@ router.get('/api/menu', authenticateAdmin, async (req, res) => {
 router.get('/api/top-sellers', authenticateAdmin, async (req, res) => {
   try {
     const query = `
+      WITH TopItems AS (
+        SELECT 
+          item.name AS item_name,
+          SUM(item.quantity) AS total_quantity
+        FROM orders
+        CROSS JOIN JSON_TABLE(
+          items,
+          '$[*]' COLUMNS (
+            name VARCHAR(255) PATH '$.name',
+            quantity INT PATH '$.quantity'
+          )
+        ) AS item
+        WHERE status = 'Completed'
+        GROUP BY item.name
+        ORDER BY total_quantity DESC
+        LIMIT 7
+      )
       SELECT 
         m.id,
         m.name,
-        m.image,
         m.price,
+        m.image,
         m.category,
-        SUM(oi.quantity) as quantitySold
-      FROM menu m
-      LEFT JOIN order_items oi ON m.id = oi.menu_item_id
-      GROUP BY m.id, m.name, m.image, m.price, m.category
-      ORDER BY quantitySold DESC
-      LIMIT 10
+        ti.total_quantity AS quantity_sold
+      FROM TopItems ti
+      JOIN menu m ON m.name COLLATE utf8mb4_unicode_ci = ti.item_name COLLATE utf8mb4_unicode_ci
+      ORDER BY ti.total_quantity DESC;
     `;
     const [results] = await req.db.query(query);
 
-    const topSellers = results.map((item, index) => ({
-      id: item.id,
-      name: item.name,
-      image: item.image,
-      price: item.price,
-      category: item.category,
-      quantitySold: item.quantitySold || 0, // Handle NULL values
-      rank: index + 1, // Assign rank based on position
+    const topSellers = results.map((row, index) => ({
+      rank: index + 1,
+      id: row.id,
+      name: row.name,
+      price: parseFloat(row.price),
+      image: row.image,
+      category: row.category,
+      quantitySold: parseInt(row.quantity_sold, 10),
     }));
 
     res.json(topSellers);
