@@ -29,13 +29,23 @@ router.get('/api/customer/menu', async (req, res) => {
 
     // Count occurrences of each item across all orders
     orders.forEach((order) => {
-      const items = JSON.parse(order.items || '[]');
-      items.forEach((item) => {
-        itemCounts[item.id] = (itemCounts[item.id] || 0) + item.quantity;
-      });
+      try {
+        const items = JSON.parse(order.items || '[]');
+        if (Array.isArray(items)) {
+          items.forEach((item) => {
+            if (item.id) {
+              itemCounts[item.id] = (itemCounts[item.id] || 0) + (item.quantity || 1);
+            }
+          });
+        } else {
+          console.warn(`Invalid items format in order: ${order.items}`);
+        }
+      } catch (parseError) {
+        console.error(`Failed to parse items: ${order.items}`, parseError);
+      }
     });
 
-    // Sort items by count and get top 5 (adjustable)
+    // Sort items by count and get top 5
     const sortedItems = Object.entries(itemCounts)
       .sort(([, countA], [, countB]) => countB - countA)
       .slice(0, 5) // Top 5 best sellers
