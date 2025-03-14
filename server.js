@@ -11,6 +11,7 @@ const MenuItems = require('./routes/menuitems');
 const routes = require('./routes/routes');
 const customer = require('./routes/customer');
 const settings = require('./routes/settings');
+const charges = require('./routes/chargesapi');
 const visitorInsights = require('./routes/visitorinsight');
 
 const app = express();
@@ -18,13 +19,7 @@ const server = http.createServer(app);
 
 // Configure CORS
 const allowedOrigins = [
-  'http://localhost:3000',
-  'https://eleven-windows-cheat.loca.lt',
-  'http://localhost:5000',
-  'http://localhost:3001',
-  'https://r21gqnrc-3000.inc1.devtunnels.ms',
   'https://qr-backend-tusharkoshti-1s-projects.vercel.app',
-  'http://127.0.0.1:8080'
 ];
 
 app.use(cors({ origin: allowedOrigins }));
@@ -82,6 +77,7 @@ app.use(orderRoutes);
 app.use(salesRoutes);
 app.use(visitorInsights);
 app.use(settings);
+app.use(charges);
 app.use(customer);
 app.use(MenuItems);
 app.use(routes);
