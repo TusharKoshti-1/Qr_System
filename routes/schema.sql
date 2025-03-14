@@ -88,6 +88,7 @@ CREATE TABLE `orders` (
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` enum('Cash','Online') NOT NULL,
   `status` enum('Pending','Completed') DEFAULT 'Pending',
+  `is_paid` tinyint(1) DEFAULT '0',
   `created_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `modified_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) DEFAULT '0',
@@ -109,6 +110,7 @@ CREATE TABLE `settings` (
   `profile_photo_data` mediumblob DEFAULT NULL,
   `profile_photo_mime` varchar(255) DEFAULT NULL,
   `profile_photo` varchar(255) DEFAULT NULL,
+  `price` decimal(10,1) Default 0.00,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
