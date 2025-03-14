@@ -70,6 +70,7 @@ router.get("/api/sales/top-products", authenticateAdmin, async (req, res) => {
         SUM(JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].price')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[*].quantity'))) AS revenue
       FROM orders
       WHERE status = 'Completed'
+      AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
       GROUP BY name
       ORDER BY quantity DESC
       LIMIT 10
