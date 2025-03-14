@@ -2,7 +2,7 @@ const { pool, masterPool } = require('../db/config');
 const express = require('express');
 const router = express.Router();
 
-// Helper function to fetch top sellers with menu details
+// Helper function to fetch top sellers with menu details (Updated for last 30 days)
 async function getTopSellers(restaurantDb) {
   try {
     const query = `
@@ -19,6 +19,7 @@ async function getTopSellers(restaurantDb) {
           )
         ) AS item
         WHERE status = 'Completed'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         GROUP BY item.name
         ORDER BY total_quantity DESC
         LIMIT 7
