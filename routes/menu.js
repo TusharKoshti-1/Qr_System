@@ -38,7 +38,7 @@ router.get('/api/top-sellers', authenticateAdmin, async (req, res) => {
           )
         ) AS item
         WHERE status = 'Completed'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        AND created_on >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         GROUP BY item.name
         ORDER BY total_quantity DESC
         LIMIT 7
