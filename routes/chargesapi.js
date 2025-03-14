@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateAdmin } = require('../middleware/auth'); // Assuming you have an auth middleware
+const { authenticateAdmin } = require('../middleware/middleware');
 
 router.get('/api/restaurant/charge', authenticateAdmin, async (req, res) => {
   try {
