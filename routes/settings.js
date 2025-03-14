@@ -90,7 +90,8 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
 // Generate QR code for restaurant
 router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
-  let connection; // Declare connection here
+  let connection;
+
   try {
     if (!process.env.WEB_URL) {
       throw new Error('WEB_URL environment variable not configured');
@@ -103,9 +104,9 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
     `);
 
     if (!settings?.length) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Restaurant settings not found',
-        solution: 'Configure restaurant settings first'
+        solution: 'Configure restaurant settings first',
       });
     }
 
@@ -116,11 +117,12 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    connection = await masterPool.getConnection(); // Assign connection
+    connection = await masterPool.getConnection(); // Assuming masterPool is available via req
     const [rows] = await connection.query(
-      `SELECT id FROM admins WHERE db_name = ?`, 
+      `SELECT id FROM admins WHERE db_name = ?`,
       [decoded.dbName]
     );
+
     if (!rows || rows.length === 0) {
       throw new Error('No restaurant found for this database');
     }
@@ -133,17 +135,38 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
     const url = new URL(`${process.env.WEB_URL}/welcome`);
     url.searchParams.set('restaurant_id', restaurantId);
 
-    const qrImage = await qrcode.toDataURL(url.toString(), {
+    // Generate QR code as a buffer
+    const qrBuffer = await qrcode.toBuffer(url.toString(), {
       errorCorrectionLevel: 'H',
       margin: 2,
-      scale: 8
+      scale: 8,
     });
 
+    // Upload to Supabase Storage
+    const fileName = `restaurant_${restaurantId}.png`;
+    const { data, error } = await supabase.storage
+      .from('qr-codes') // Your bucket name
+      .upload(fileName, qrBuffer, {
+        contentType: 'image/png',
+        upsert: true, // Overwrite if exists
+      });
+
+    if (error) {
+      throw new Error(`Failed to upload QR code to Supabase: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('qr-codes')
+      .getPublicUrl(fileName);
+
+    const qrImageUrl = publicUrlData.publicUrl;
+
     res.json({
-      qrImage,
+      qrImage: qrImageUrl, // e.g., https://your-project-ref.supabase.co/storage/v1/object/public/qr-codes/restaurant_1.png
       restaurantName: restaurant.restaurantName,
       address: restaurant.address,
-      upiId: restaurant.upiId
+      upiId: restaurant.upiId,
     });
 
   } catch (error) {
@@ -151,18 +174,20 @@ router.get('/api/generate-qr', authenticateAdmin, async (req, res) => {
       message: error.message,
       stack: error.stack,
       adminId: req.admin?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     res.status(500).json({
       error: 'QR generation failed',
-      debugInfo: process.env.NODE_ENV === 'development' ? {
-        message: error.message,
-        stack: error.stack
-      } : undefined
+      debugInfo: process.env.NODE_ENV === 'development'
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : undefined,
     });
   } finally {
-    if (connection) connection.release(); // Release only if connection exists
+    if (connection) connection.release();
   }
 });
 
