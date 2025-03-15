@@ -116,7 +116,7 @@ INSERT INTO `MenuItems` (`id`, `name`, `category`, `create_on`, `modified_on`, `
 CREATE TABLE `orders` (
   `id` int NOT NULL AUTO_INCREMENT,
   `customer_name` varchar(255) NOT NULL,
-  `phone` varchar(15) NOT NULL,
+  `phone` varchar(15) NULL,
   `items` json NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` enum('Cash','Online') NOT NULL,
