@@ -48,7 +48,7 @@ router.get("/api/sales", authenticateAdmin, async (req, res) => {
 // Fetch completed sales details
 router.get("/api/sale", authenticateAdmin, async (req, res) => {
   try {
-    const query = `SELECT DISTINCT id, customer_name, phone, total_amount, payment_method, created_on
+    const query = `SELECT DISTINCT id, customer_name,table_number, phone, total_amount, payment_method, created_on
       FROM orders 
       WHERE status='Completed'`;
 
