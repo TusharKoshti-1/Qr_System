@@ -11,6 +11,7 @@ const MenuItems = require('./routes/menuitems');
 const routes = require('./routes/routes');
 const customer = require('./routes/customer');
 const settings = require('./routes/settings');
+const tableorder = require('./routes/tableorder');
 const charges = require('./routes/chargesapi');
 const visitorInsights = require('./routes/visitorinsight');
 
@@ -80,6 +81,7 @@ app.use(settings);
 app.use(charges);
 app.use(customer);
 app.use(MenuItems);
+app.use(tableorder);
 app.use(routes);
 
 // WebSocket connection handler
