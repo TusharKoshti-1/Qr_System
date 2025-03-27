@@ -62,12 +62,33 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
     const orderId = req.params.id;
     const { status } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
     const query = "UPDATE orders SET status = ? WHERE id = ?";
     const [result] = await req.db.query(query, [status, orderId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Order not found" });
     }
+
+    // Fetch the updated order to include in the broadcast
+    const [rows] = await req.db.query("SELECT * FROM orders WHERE id = ?", [orderId]);
+    const updatedOrder = rows[0];
+
+    // Broadcast the updated order status to all clients
+    req.wss.broadcast({
+      type: "update_table_order",
+      order: {
+        id: Number(updatedOrder.id), // Ensure ID is a number
+        table_number: updatedOrder.table_number,
+        payment_method: updatedOrder.payment_method,
+        total_amount: updatedOrder.total_amount,
+        items: JSON.parse(updatedOrder.items || '[]'), // Parse items if stored as JSON
+        status: updatedOrder.status,
+      },
+    });
 
     res.json({ message: "Order status updated successfully" });
   } catch (err) {
