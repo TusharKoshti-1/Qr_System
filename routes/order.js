@@ -3,7 +3,6 @@ const router = express.Router();
 const connection = require("../db/config");
 const { authenticateAdmin } = require('../middleware/middleware');
 
-
 // Add a new order
 router.post('/api/orders', authenticateAdmin, async (req, res) => {
   try {
@@ -40,7 +39,7 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Fetch all orders
+// Fetch all orders (no WebSocket needed)
 router.get('/api/orders', authenticateAdmin, async (req, res) => {
   try {
     const query = `SELECT * FROM orders WHERE customer_name IS NOT NULL AND status = 'Pending' ORDER BY created_on DESC`;
@@ -57,14 +56,26 @@ router.get('/api/orders', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update an order
+// Update an order status
 router.put("/api/orders/:id", authenticateAdmin, async (req, res) => {
   try {
     const orderId = req.params.id;
     const { status } = req.body;
 
     const query = "UPDATE orders SET status = ? WHERE id = ?";
-    await req.db.query(query, [status, orderId]);
+    const [result] = await req.db.query(query, [status, orderId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Broadcast status update via WebSocket
+    req.wss.broadcast({ 
+      type: "update_order", 
+      id: orderId, 
+      status 
+    });
+
     res.json({ message: "Order updated successfully" });
   } catch (err) {
     console.error("Error updating order status:", err);
@@ -137,6 +148,5 @@ router.delete("/api/orders/:id", authenticateAdmin, async (req, res) => {
     res.status(500).send("Database error");
   }
 });
-
 
 module.exports = router;
