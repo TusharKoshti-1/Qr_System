@@ -85,7 +85,7 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
         table_number: updatedOrder.table_number,
         payment_method: updatedOrder.payment_method,
         total_amount: updatedOrder.total_amount,
-        items: JSON.parse(updatedOrder.items || '[]'), // Parse items if stored as JSON
+        items: JSON.stringify(updatedOrder.items || '[]'), // Parse items if stored as JSON
         status: updatedOrder.status,
       },
     });
