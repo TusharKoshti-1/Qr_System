@@ -81,7 +81,7 @@ router.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
         phone: updatedOrder.phone,
         payment_method: updatedOrder.payment_method,
         total_amount: updatedOrder.total_amount,
-        items: JSON.parse(updatedOrder.items || '[]'),
+        items: JSON.stringify(updatedOrder.items || '[]'),
         status: updatedOrder.status,
       },
     });
