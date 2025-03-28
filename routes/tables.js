@@ -87,16 +87,18 @@ router.delete('/api/tables/:id', authenticateAdmin, async (req, res) => {
   try {
     const tableId = req.params.id;
 
-    // Verify table exists
-    const [checkResult] = await req.db.query('SELECT id FROM tables WHERE id = ?', [tableId]);
+    // Verify table exists and get table_number
+    const [checkResult] = await req.db.query('SELECT id, table_number FROM tables WHERE id = ?', [tableId]);
     if (checkResult.length === 0) {
       return res.status(404).json({ message: 'Table not found' });
     }
 
+    const tableNumber = checkResult[0].table_number;
+
     // Delete table
     const [result] = await req.db.query('DELETE FROM tables WHERE id = ?', [tableId]);
 
-    req.wss.broadcast({ type: 'delete_table', id: tableId });
+    req.wss.broadcast({ type: 'delete_table', id: tableId, table_number: tableNumber });
     res.status(204).send();
   } catch (err) {
     console.error('Error deleting table:', err);
