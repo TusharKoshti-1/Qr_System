@@ -57,29 +57,39 @@ router.get('/api/orders', authenticateAdmin, async (req, res) => {
 });
 
 // Update an order status
-router.put("/api/orders/:id", authenticateAdmin, async (req, res) => {
+router.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
   try {
     const orderId = req.params.id;
     const { status } = req.body;
 
-    const query = "UPDATE orders SET status = ? WHERE id = ?";
+    const query = 'UPDATE orders SET status = ? WHERE id = ?';
     const [result] = await req.db.query(query, [status, orderId]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Order not found" });
+      return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Broadcast status update via WebSocket
-    req.wss.broadcast({ 
-      type: "update_order", 
-      id: orderId, 
-      status 
+    const [rows] = await req.db.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    const updatedOrder = rows[0];
+
+    // Broadcast full order object
+    req.wss.broadcast({
+      type: 'update_order',
+      order: {
+        id: Number(updatedOrder.id),
+        customer_name: updatedOrder.customer_name,
+        phone: updatedOrder.phone,
+        payment_method: updatedOrder.payment_method,
+        total_amount: updatedOrder.total_amount,
+        items: JSON.parse(updatedOrder.items || '[]'),
+        status: updatedOrder.status,
+      },
     });
 
-    res.json({ message: "Order updated successfully" });
+    res.json({ message: 'Order updated successfully' });
   } catch (err) {
-    console.error("Error updating order status:", err);
-    res.status(500).send("Database error");
+    console.error('Error updating order:', err);
+    res.status(500).send('Database error');
   }
 });
 
