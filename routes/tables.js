@@ -76,10 +76,13 @@ router.post('/api/tables', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Table number and section are required' });
     }
 
-    // Check if table number already exists
-    const [existing] = await req.db.query('SELECT id FROM tables WHERE table_number = ?', [table_number]);
+    // Check if table number already exists in this section
+    const [existing] = await req.db.query(
+      'SELECT id FROM tables WHERE table_number = ? AND section_id = ?',
+      [table_number, section_id]
+    );
     if (existing.length > 0) {
-      return res.status(400).json({ message: 'Table number already exists' });
+      return res.status(400).json({ message: 'Table number already exists in this section' });
     }
 
     const query = `
