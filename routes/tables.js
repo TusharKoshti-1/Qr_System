@@ -5,25 +5,27 @@ const { authenticateAdmin } = require('../middleware/middleware');
 // Add a new table
 router.post('/api/tables', authenticateAdmin, async (req, res) => {
   try {
-    const { table_number, status } = req.body;
+    const { table_number, status, section } = req.body;
 
-    if (!table_number) {
-      return res.status(400).json({ message: 'Table number is required' });
+    if (!table_number || !section) {
+      return res.status(400).json({ message: 'Table number and section are required' });
     }
 
     const query = `
-      INSERT INTO tables (table_number, status)
-      VALUES (?, ?)
+      INSERT INTO tables (table_number, status, section)
+      VALUES (?, ?, ?)
     `;
     const [result] = await req.db.query(query, [
       table_number,
-      status || 'empty', // Default to 'empty' if not provided
+      status || 'empty',
+      section,
     ]);
 
     const newTable = {
       id: result.insertId,
       table_number,
       status: status || 'empty',
+      section,
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -38,13 +40,14 @@ router.post('/api/tables', authenticateAdmin, async (req, res) => {
 // Fetch all tables
 router.get('/api/tables', authenticateAdmin, async (req, res) => {
   try {
-    const query = `SELECT * FROM tables ORDER BY table_number ASC`;
+    const query = `SELECT * FROM tables ORDER BY section, table_number ASC`;
     const [results] = await req.db.query(query);
 
     const processedResults = results.map((table) => ({
       id: table.id,
       table_number: table.table_number,
       status: table.status,
+      section: table.section,
       created_at: table.created_at,
       updated_at: table.updated_at,
     }));
@@ -60,20 +63,24 @@ router.get('/api/tables', authenticateAdmin, async (req, res) => {
 router.put('/api/tables/:id', authenticateAdmin, async (req, res) => {
   try {
     const tableId = req.params.id;
-    const { status } = req.body;
+    const { status, section } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ message: 'Status is required' });
+    if (!status && !section) {
+      return res.status(400).json({ message: 'Status or section is required' });
     }
 
-    const query = 'UPDATE tables SET status = ? WHERE id = ?';
-    const [result] = await req.db.query(query, [status, tableId]);
+    const query = 'UPDATE tables SET status = ?, section = ? WHERE id = ?';
+    const [result] = await req.db.query(query, [
+      status || 'empty',
+      section || 'Ground Floor', // Default section if not provided
+      tableId,
+    ]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Table not found' });
     }
 
-    const updatedTable = { id: tableId, status };
+    const updatedTable = { id: tableId, status, section };
     req.wss.broadcast({ type: 'update_table', table: updatedTable });
     res.json({ message: 'Table updated successfully' });
   } catch (err) {
@@ -82,23 +89,21 @@ router.put('/api/tables/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Delete a table
+// Delete a table (unchanged except for broadcast data)
 router.delete('/api/tables/:id', authenticateAdmin, async (req, res) => {
   try {
     const tableId = req.params.id;
 
-    // Verify table exists and get table_number
-    const [checkResult] = await req.db.query('SELECT id, table_number FROM tables WHERE id = ?', [tableId]);
+    const [checkResult] = await req.db.query('SELECT id, table_number, section FROM tables WHERE id = ?', [tableId]);
     if (checkResult.length === 0) {
       return res.status(404).json({ message: 'Table not found' });
     }
 
-    const tableNumber = checkResult[0].table_number;
+    const { table_number, section } = checkResult[0];
 
-    // Delete table
     const [result] = await req.db.query('DELETE FROM tables WHERE id = ?', [tableId]);
 
-    req.wss.broadcast({ type: 'delete_table', id: tableId, table_number: tableNumber });
+    req.wss.broadcast({ type: 'delete_table', id: tableId, table_number, section });
     res.status(204).send();
   } catch (err) {
     console.error('Error deleting table:', err);
