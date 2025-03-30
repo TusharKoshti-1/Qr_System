@@ -135,7 +135,7 @@ router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => 
   // Parse items if stored as a string in the DB
   const orderToBroadcast = {
     ...updatedOrder,
-    items: typeof updatedOrder.items === 'string' ? JSON.parse(updatedOrder.items) : updatedOrder.items,
+    items: typeof updatedOrder.items === 'string' ? JSON.stringify(updatedOrder.items) : updatedOrder.items,
   };
 
   // Broadcast the full order via WebSocket
