@@ -103,7 +103,7 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
         section_id: updatedOrder.section_id,
         total_amount: updatedOrder.total_amount,
         payment_method: updatedOrder.payment_method,
-        items: JSON.parse(updatedOrder.items || '[]'),
+        items: JSON.stringify(updatedOrder.items || '[]'),
         status: updatedOrder.status,
       },
     });
