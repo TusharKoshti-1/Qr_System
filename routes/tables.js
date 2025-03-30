@@ -48,7 +48,6 @@ router.delete('/api/sections/:id', authenticateAdmin, async (req, res) => {
   try {
     const sectionId = req.params.id;
 
-    // Check if section has tables
     const [tables] = await req.db.query('SELECT COUNT(*) as count FROM tables WHERE section_id = ?', [sectionId]);
     if (tables[0].count > 0) {
       return res.status(400).json({ message: 'Cannot delete section with existing tables' });
@@ -76,7 +75,6 @@ router.post('/api/tables', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Table number and section are required' });
     }
 
-    // Check if table number already exists in this section
     const [existing] = await req.db.query(
       'SELECT id FROM tables WHERE table_number = ? AND section_id = ?',
       [table_number, section_id]
