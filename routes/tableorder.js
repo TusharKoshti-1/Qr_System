@@ -116,47 +116,35 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
 });
 
 // Update order items and total_amount
-router.put("/api/tableorder/update/:id", authenticateAdmin, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const { items, total_amount } = req.body;
+router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => {
+  const { items, total_amount, status } = req.body;
+  const orderId = req.params.id;
 
-    const updateQuery = `
-      UPDATE orders 
-      SET total_amount = ?, items = ? 
-      WHERE id = ?
-    `;
-    const [result] = await req.db.query(updateQuery, [
-      total_amount,
-      JSON.stringify(items),
-      orderId
-    ]);
+  // Update the order in the database
+  await req.db.query(
+    'UPDATE table_orders SET items = ?, total_amount = ?, status = ? WHERE id = ?',
+    [JSON.stringify(items), total_amount, status, orderId],
+  );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Order not found" });
-    }
+  // Fetch the updated order (including table_number and section_id)
+  const [updatedOrder] = await req.db.query(
+    'SELECT * FROM table_orders WHERE id = ?',
+    [orderId],
+  );
 
-    // Fetch the updated order for broadcast
-    const [rows] = await req.db.query("SELECT * FROM orders WHERE id = ?", [orderId]);
-    const updatedOrder = rows[0];
+  // Parse items if stored as a string in the DB
+  const orderToBroadcast = {
+    ...updatedOrder,
+    items: typeof updatedOrder.items === 'string' ? JSON.parse(updatedOrder.items) : updatedOrder.items,
+  };
 
-    req.wss.broadcast({ 
-      type: "update_table_order", 
-      order: {
-        id: Number(updatedOrder.id),
-        table_number: updatedOrder.table_number,
-        section_id: updatedOrder.section_id,
-        total_amount: updatedOrder.total_amount,
-        items: JSON.stringify(updatedOrder.items || '[]'),
-        status: updatedOrder.status
-      }
-    });
+  // Broadcast the full order via WebSocket
+  req.wss.broadcast({
+    type: 'update_table_order',
+    order: orderToBroadcast,
+  });
 
-    res.json({ message: "Order updated successfully" });
-  } catch (err) {
-    console.error("Error updating order:", err);
-    res.status(500).send("Database error");
-  }
+  res.json({ message: 'Order updated successfully' });
 });
 
 // Delete an order
