@@ -60,7 +60,7 @@ router.get('/api/tableorder', authenticateAdmin, async (req, res) => {
       id: order.id,
       table_number: order.table_number,
       section_id: order.section_id,
-      items: JSON.parse(order.items || '[]'), // Parse items if stored as JSON
+      items: JSON.stringify(order.items || '[]'), // Parse items if stored as JSON
       total_amount: order.total_amount,
       payment_method: order.payment_method,
       status: order.status
@@ -147,7 +147,7 @@ router.put("/api/tableorder/update/:id", authenticateAdmin, async (req, res) => 
         table_number: updatedOrder.table_number,
         section_id: updatedOrder.section_id,
         total_amount: updatedOrder.total_amount,
-        items: JSON.parse(updatedOrder.items || '[]'),
+        items: JSON.stringify(updatedOrder.items || '[]'),
         status: updatedOrder.status
       }
     });
