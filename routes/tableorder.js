@@ -122,13 +122,13 @@ router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => 
 
   // Update the order in the database
   await req.db.query(
-    'UPDATE table_orders SET items = ?, total_amount = ?, status = ? WHERE id = ?',
+    'UPDATE orders SET items = ?, total_amount = ?, status = ? WHERE id = ?',
     [JSON.stringify(items), total_amount, status, orderId],
   );
 
   // Fetch the updated order (including table_number and section_id)
   const [updatedOrder] = await req.db.query(
-    'SELECT * FROM table_orders WHERE id = ?',
+    'SELECT * FROM orders WHERE id = ?',
     [orderId],
   );
 
