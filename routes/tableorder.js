@@ -138,7 +138,7 @@ router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => 
     id: updatedOrder.id,
     table_number: updatedOrder.table_number,
     section_id: updatedOrder.section_id,
-    items: typeof updatedOrder.items === 'string' ? JSON.stringify(updatedOrder.items) : updatedOrder.items || [],
+    items: typeof updatedOrder.items === 'string' ? JSON.parse(updatedOrder.items) : updatedOrder.items || [],
     total_amount: updatedOrder.total_amount,
     payment_method: updatedOrder.payment_method,
     status: updatedOrder.status,
