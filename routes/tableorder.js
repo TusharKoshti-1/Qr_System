@@ -116,6 +116,7 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
 });
 
 // Update order items and total_amount
+// Update order items and total_amount
 router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => {
   const { items, total_amount, status } = req.body;
   const orderId = req.params.id;
@@ -132,10 +133,15 @@ router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => 
     [orderId],
   );
 
-  // Parse items if stored as a string in the DB
+  // Ensure items is parsed as an array for the broadcast
   const orderToBroadcast = {
-    ...updatedOrder,
-    items: typeof updatedOrder.items === 'string' ? JSON.stringify(updatedOrder.items) : updatedOrder.items,
+    id: updatedOrder.id,
+    table_number: updatedOrder.table_number,
+    section_id: updatedOrder.section_id,
+    items: typeof updatedOrder.items === 'string' ? JSON.stringify(updatedOrder.items) : updatedOrder.items || [],
+    total_amount: updatedOrder.total_amount,
+    payment_method: updatedOrder.payment_method,
+    status: updatedOrder.status,
   };
 
   // Broadcast the full order via WebSocket
