@@ -43,26 +43,48 @@ router.get('/api/sections', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Delete a section (only if no tables exist in it)
 router.delete('/api/sections/:id', authenticateAdmin, async (req, res) => {
   try {
     const sectionId = req.params.id;
 
+    // Log the sectionId to ensure it’s correct
+    console.log('Attempting to delete section with ID:', sectionId);
+
+    // Check if tables exist in this section
     const [tables] = await req.db.query('SELECT COUNT(*) as count FROM tables WHERE section_id = ?', [sectionId]);
+    console.log('Tables count for section', sectionId, ':', tables[0].count);
+
     if (tables[0].count > 0) {
       return res.status(400).json({ message: 'Cannot delete section with existing tables' });
     }
 
+    // Check if section exists
+    const [[section]] = await req.db.query('SELECT * FROM sections WHERE id = ?', [sectionId]);
+    if (!section) {
+      return res.status(404).json({ message: 'Section not found' });
+    }
+
+    // Delete the section
     const [result] = await req.db.query('DELETE FROM sections WHERE id = ?', [sectionId]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Section not found' });
     }
 
+    // Broadcast deletion
     req.wss.broadcast({ type: 'delete_section', id: sectionId });
     res.status(204).send();
+
   } catch (err) {
-    console.error('Error deleting section:', err);
-    res.status(500).send('Database error');
+    console.error('Error deleting section:', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+      sql: err.sql // If your driver supports it
+    });
+    res.status(500).json({ 
+      message: 'Database error', 
+      error: err.message 
+    });
   }
 });
 
