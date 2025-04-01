@@ -206,33 +206,47 @@ router.delete('/api/tables/:id', authenticateAdmin, async (req, res) => {
   try {
     const tableId = req.params.id;
 
-    const [checkResult] = await req.db.query(`
-      SELECT t.id, t.table_number, s.name as section 
+    // Fetch table details before deletion
+    const [tableResult] = await req.db.query(
+      `
+      SELECT t.id, t.table_number, t.section_id, s.name AS section 
       FROM tables t 
       JOIN sections s ON t.section_id = s.id 
       WHERE t.id = ?
-    `, [tableId]);
-    
-    if (checkResult.length === 0) {
+    `,
+      [tableId]
+    );
+
+    if (tableResult.length === 0) {
       return res.status(404).json({ message: 'Table not found' });
     }
 
-    // const { table_number, section } = checkResult[0];
-    const [result] = await req.db.query('DELETE FROM tables WHERE id = ?', [tableId]);
+    const table = tableResult[0];
 
-    const deletetable = result[0];
+    // Delete associated orders first (assuming orders table has table_number and section_id)
+    await req.db.query(
+      'DELETE FROM orders WHERE table_number = ? AND section_id = ?',
+      [table.table_number, table.section_id]
+    );
 
-    const orderToBroadcast = {
-      id: tableId,
-      table_number: deletetable.table_number,
-      section: deletetable.section_id,
-    };
+    // Delete the table
+    const [deleteResult] = await req.db.query('DELETE FROM tables WHERE id = ?', [tableId]);
+    if (deleteResult.affectedRows === 0) {
+      return res.status(500).json({ message: 'Failed to delete table' });
+    }
 
-    req.wss.broadcast({ type: 'delete_table', order: orderToBroadcast });
+    // Broadcast the deletion via WebSocket
+    req.wss.broadcast({
+      type: 'delete_table',
+      id: Number(tableId), // Match frontend expectation of data.id
+      table_number: table.table_number, // Optional: for order filtering
+      section_id: table.section_id, // Optional: for order filtering
+    });
+
     res.status(204).send();
   } catch (err) {
     console.error('Error deleting table:', err);
-    res.status(500).send('Database error');
+    res.status(500).json({ message: 'Database error' });
   }
 });
 
