@@ -42,48 +42,61 @@ router.get('/api/sections', authenticateAdmin, async (req, res) => {
     res.status(500).send('Database error');
   }
 });
-
+// Assuming authenticateAdmin and req.db are set up elsewhere
 router.delete('/api/sections/:id', authenticateAdmin, async (req, res) => {
   try {
     const sectionId = req.params.id;
 
-    // Log the sectionId to ensure it’s correct
+    // Log the sectionId for debugging
     console.log('Attempting to delete section with ID:', sectionId);
 
-    // Check if tables exist in this section
-    const [tables] = await req.db.query('SELECT COUNT(*) as count FROM tables WHERE section_id = ?', [sectionId]);
-    console.log('Tables count for section', sectionId, ':', tables[0].count);
-
-    if (tables[0].count > 0) {
-      return res.status(400).json({ message: 'Cannot delete section with existing tables' });
-    }
-
     // Check if section exists
-    const [[section]] = await req.db.query('SELECT * FROM sections WHERE id = ?', [sectionId]);
-    if (!section) {
+    const [sectionResult] = await req.db.query('SELECT * FROM sections WHERE id = ?', [sectionId]);
+    if (sectionResult.length === 0) {
       return res.status(404).json({ message: 'Section not found' });
     }
+
+    // Start a transaction to ensure atomicity
+    await req.db.query('START TRANSACTION');
+
+    // Delete orders tied to tables in this section
+    await req.db.query(
+      'DELETE o FROM orders o JOIN tables t ON o.table_number = t.table_number AND o.section_id = t.section_id WHERE t.section_id = ?',
+      [sectionId]
+    );
+
+    // Delete tables in this section
+    await req.db.query('DELETE FROM tables WHERE section_id = ?', [sectionId]);
 
     // Delete the section
     const [result] = await req.db.query('DELETE FROM sections WHERE id = ?', [sectionId]);
     if (result.affectedRows === 0) {
+      await req.db.query('ROLLBACK');
       return res.status(404).json({ message: 'Section not found' });
     }
 
-    // Broadcast deletion
-    req.wss.broadcast({ type: 'delete_section', id: sectionId });
-    res.status(204).send();
+    // Commit the transaction
+    await req.db.query('COMMIT');
 
+    // Broadcast deletion via WebSocket
+    req.wss.broadcast({
+      type: 'delete_section',
+      id: Number(sectionId), // Ensure it’s a number to match frontend
+    });
+
+    res.status(204).send();
   } catch (err) {
+    // Rollback on error
+    await req.db.query('ROLLBACK');
     console.error('Error deleting section:', {
       message: err.message,
       code: err.code,
       stack: err.stack,
-      sql: err.sql // If your driver supports it
+      sql: err.sql,
     });
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Database error',
+      error: err.message,
     });
   }
 });
