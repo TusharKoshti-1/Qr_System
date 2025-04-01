@@ -128,17 +128,18 @@ router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => 
   );
 
   // Fetch the updated order (including table_number and section_id)
-  const [updatedOrder] = await req.db.query(
+  const [rows] = await req.db.query(
     'SELECT * FROM orders WHERE id = ?',
     [orderId],
   );
+  const updatedOrder = rows[0];
 
   // Ensure items is parsed as an array for the broadcast
   const orderToBroadcast = {
     id: updatedOrder.id,
     table_number: updatedOrder.table_number,
     section_id: updatedOrder.section_id,
-    items: updatedOrder.items || '[]', // Already JSON string from database
+    items: json.stringify(updatedOrder.items || '[]'), // Already JSON string from database
     total_amount: updatedOrder.total_amount,
     payment_method: updatedOrder.payment_method,
     status: updatedOrder.status,
