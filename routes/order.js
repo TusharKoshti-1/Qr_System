@@ -48,7 +48,7 @@ router.get('/api/orders', authenticateAdmin, async (req, res) => {
     // Parse items from JSON string to array
     const processedResults = results.map(order => ({
       ...order,
-      items: JSON.parse(order.items || '[]')
+      items: JSON.stringify(order.items || '[]')
     }));
 
     res.json(processedResults);
@@ -83,7 +83,7 @@ router.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
         phone: updatedOrder.phone,
         payment_method: updatedOrder.payment_method,
         total_amount: updatedOrder.total_amount,
-        items: JSON.parse(updatedOrder.items || '[]'), // Parse to array
+        items: JSON.stringify(updatedOrder.items || '[]'), // Parse to array
         status: updatedOrder.status,
       },
     });
