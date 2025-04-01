@@ -55,39 +55,41 @@ CREATE TABLE `Login` (
 -- =====================================================
 CREATE TABLE `sections` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
+  `name` varchar(50) NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Insert default section data
-INSERT INTO `sections` (`id`, `name`, `created_at`, `updated_at`)
+INSERT INTO `sections` (`name`, `created_at`, `updated_at`)
 VALUES 
-(1, 'Dining Area', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(2, 'Outdoor Seating', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('Dining Area', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Outdoor Seating', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- =====================================================
 -- Create the tables table
 -- =====================================================
 CREATE TABLE `tables` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `table_number` varchar(50) NOT NULL,
-  `status` enum('Available','Occupied','Reserved') DEFAULT 'Available',
+  `table_number` varchar(20) NOT NULL,
+  `status` enum('empty','occupied','reserved') DEFAULT 'empty',
   `section_id` int NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `section_id` (`section_id`),
+  KEY `table_number` (`table_number`),
   CONSTRAINT `tables_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Insert default table data
 INSERT INTO `tables` (`table_number`, `status`, `section_id`, `created_at`, `updated_at`)
 VALUES 
-('T1', 'Available', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('T2', 'Available', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('O1', 'Available', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('T1', 'empty', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('T2', 'empty', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('O1', 'empty', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- =====================================================
 -- Create the menu table
@@ -157,16 +159,16 @@ INSERT INTO `MenuItems` (`id`, `name`, `category`, `create_on`, `modified_on`, `
 CREATE TABLE `orders` (
   `id` int NOT NULL AUTO_INCREMENT,
   `customer_name` varchar(255) NULL,
-  `phone` varchar(15) NULL,
+  `phone` varchar(255) NULL,
   `table_number` varchar(50) NULL,
   `items` json NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` enum('Cash','Online') NOT NULL,
   `status` enum('Pending','Completed') DEFAULT 'Pending',
-  `is_paid` tinyint(1) DEFAULT '0',
   `created_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `modified_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) DEFAULT '0',
+  `is_paid` tinyint(1) DEFAULT '0',
   `section_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `section_id` (`section_id`),
