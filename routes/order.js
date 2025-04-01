@@ -74,7 +74,7 @@ router.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
 
     
     const updatedOrder2 = { id: updatedOrder.id, status: updatedOrder.status };
-    req.wss.broadcast({ type: "update_order", order: updatedOrder2 });
+    req.wss.broadcast({ type: "complete_order", order: updatedOrder2 });
 
     res.json({ message: 'Order updated successfully' });
   } catch (err) {
