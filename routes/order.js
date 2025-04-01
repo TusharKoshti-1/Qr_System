@@ -26,7 +26,7 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
       id: result.insertId,
       customer_name,
       phone: phoneToInsert,
-      items, // Already an array from req.body
+      items,
       total_amount,
       payment_method,
       status: 'Pending'
@@ -39,17 +39,15 @@ router.post('/api/orders', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Fetch all orders
+// Fetch all orders (no WebSocket needed)
 router.get('/api/orders', authenticateAdmin, async (req, res) => {
   try {
     const query = `SELECT * FROM orders WHERE customer_name IS NOT NULL AND status = 'Pending' ORDER BY created_on DESC`;
     const [results] = await req.db.query(query);
 
-    // Parse items from JSON string to array
-    const processedResults = results.map(order => ({
-      ...order,
-      items: JSON.stringify(order.items || '[]')
-    }));
+    const processedResults = results.map(order => {
+      return order;
+    });
 
     res.json(processedResults);
   } catch (err) {
@@ -74,19 +72,9 @@ router.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
     const [rows] = await req.db.query('SELECT * FROM orders WHERE id = ?', [orderId]);
     const updatedOrder = rows[0];
 
-    // Broadcast full order object with items parsed to array
-    req.wss.broadcast({
-      type: 'update_order',
-      order: {
-        id: Number(updatedOrder.id),
-        customer_name: updatedOrder.customer_name,
-        phone: updatedOrder.phone,
-        payment_method: updatedOrder.payment_method,
-        total_amount: updatedOrder.total_amount,
-        items: JSON.stringify(updatedOrder.items || '[]'), // Parse to array
-        status: updatedOrder.status,
-      },
-    });
+    
+    const updatedOrder2 = { id: updatedOrder.id, status: updatedOrder.status };
+    req.wss.broadcast({ type: "update_order", order: updatedOrder2 });
 
     res.json({ message: 'Order updated successfully' });
   } catch (err) {
@@ -117,7 +105,7 @@ router.put("/api/updateorders/:id", authenticateAdmin, async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    const updatedOrder = { id: orderId, items, total_amount }; // items is already an array
+    const updatedOrder = { id: orderId, items, total_amount };
     req.wss.broadcast({ type: "update_order", order: updatedOrder });
 
     res.json({ message: "Order updated successfully" });
