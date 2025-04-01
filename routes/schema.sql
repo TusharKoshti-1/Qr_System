@@ -1,7 +1,7 @@
 -- schema.sql
 -- This script creates the necessary tables for the QR Ordering System.
 -- It drops existing tables (if any) and then creates fresh ones.
--- Default data is inserted into the Role, settings, and MenuItems tables.
+-- Default data is inserted into the Role, settings, sections, and MenuItems tables.
 
 -- Disable foreign key checks to allow dropping tables in any order
 SET FOREIGN_KEY_CHECKS = 0;
@@ -12,6 +12,8 @@ DROP TABLE IF EXISTS `MenuItems`;
 DROP TABLE IF EXISTS `menu`;
 DROP TABLE IF EXISTS `Login`;
 DROP TABLE IF EXISTS `Role`;
+DROP TABLE IF EXISTS `tables`;
+DROP TABLE IF EXISTS `sections`;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -49,6 +51,45 @@ CREATE TABLE `Login` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =====================================================
+-- Create the sections table
+-- =====================================================
+CREATE TABLE `sections` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Insert default section data
+INSERT INTO `sections` (`id`, `name`, `created_at`, `updated_at`)
+VALUES 
+(1, 'Dining Area', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 'Outdoor Seating', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- =====================================================
+-- Create the tables table
+-- =====================================================
+CREATE TABLE `tables` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `table_number` varchar(50) NOT NULL,
+  `status` enum('Available','Occupied','Reserved') DEFAULT 'Available',
+  `section_id` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `section_id` (`section_id`),
+  CONSTRAINT `tables_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Insert default table data
+INSERT INTO `tables` (`table_number`, `status`, `section_id`, `created_at`, `updated_at`)
+VALUES 
+('T1', 'Available', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('T2', 'Available', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('O1', 'Available', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- =====================================================
 -- Create the menu table
 -- =====================================================
 CREATE TABLE `menu` (
@@ -77,7 +118,7 @@ CREATE TABLE `MenuItems` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Insert default data into MenuItems table
+-- Insert default data into MenuItems table (keeping your original data)
 INSERT INTO `MenuItems` (`id`, `name`, `category`, `create_on`, `modified_on`, `is_deleted`, `image`) VALUES
 (11, 'Full Dry Manchurian', 'Chinese', '2025-02-24 05:41:35', '2025-02-24 05:41:35', 0, 'https://zyvlaqormkqnkhsomkil.supabase.co/storage/v1/object/public/menu_items/1740375694026-p7p3ahjd1z.jpg'),
 (15, 'Paneer Tikka Masala', 'Punjabi', '2025-03-11 16:06:11', '2025-03-11 16:06:11', 0, 'https://zyvlaqormkqnkhsomkil.supabase.co/storage/v1/object/public/menu_items/1741709170075-6qnapdswcw8.jpg'),
@@ -111,13 +152,13 @@ INSERT INTO `MenuItems` (`id`, `name`, `category`, `create_on`, `modified_on`, `
 (45, 'Noodles', 'Chinese', '2025-03-15 09:43:11', '2025-03-15 09:43:11', 0, 'https://zyvlaqormkqnkhsomkil.supabase.co/storage/v1/object/public/menu_items/1742031790905-ybdz5e6iy6o.jpg');
 
 -- =====================================================
--- Create the orders table
+-- Create the orders table (updated with section_id)
 -- =====================================================
 CREATE TABLE `orders` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `customer_name` varchar(255) NULL, -- Made nullable for table orders
+  `customer_name` varchar(255) NULL,
   `phone` varchar(15) NULL,
-  `table_number` varchar(50) NULL, -- New column for table orders
+  `table_number` varchar(50) NULL,
   `items` json NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` enum('Cash','Online') NOT NULL,
@@ -126,8 +167,12 @@ CREATE TABLE `orders` (
   `created_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `modified_on` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) DEFAULT '0',
-  PRIMARY KEY (`id`)
+  `section_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `section_id` (`section_id`),
+  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- =====================================================
 -- Create the settings table
 -- =====================================================
