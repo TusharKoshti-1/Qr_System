@@ -116,44 +116,52 @@ router.put("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
 });
 
 // Update order items and total_amount
-// Update order items and total_amount
 router.put('/api/tableorder/update/:id', authenticateAdmin, async (req, res) => {
   const { items, total_amount, status } = req.body;
   const orderId = req.params.id;
 
-  // Update the order in the database
-  await req.db.query(
-    'UPDATE orders SET items = ?, total_amount = ?, status = ? WHERE id = ?',
-    [JSON.stringify(items), total_amount, status, orderId],
-  );
+  // Validate required fields
+  if (!items || total_amount === undefined || !status) {
+    return res.status(400).json({ error: 'Items, total_amount, and status are required' });
+  }
 
-  // Fetch the updated order (including table_number and section_id)
-  const [rows] = await req.db.query(
-    'SELECT * FROM orders WHERE id = ?',
-    [orderId],
-  );
-  const updatedOrder = rows[0];
+  try {
+    // Update the order in the database
+    await req.db.query(
+      'UPDATE orders SET items = ?, total_amount = ?, status = ? WHERE id = ?',
+      [JSON.stringify(items), total_amount, status, orderId]
+    );
 
-  // Ensure items is parsed as an array for the broadcast
-  const orderToBroadcast = {
-    id: updatedOrder.id,
-    table_number: updatedOrder.table_number,
-    section_id: updatedOrder.section_id,
-    items: json.stringify(updatedOrder.items || '[]'), // Already JSON string from database
-    total_amount: updatedOrder.total_amount,
-    payment_method: updatedOrder.payment_method,
-    status: updatedOrder.status,
-  };
+    // Fetch the updated order (including table_number and section_id)
+    const [rows] = await req.db.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const updatedOrder = rows[0];
 
-  // Broadcast the full order via WebSocket
-  req.wss.broadcast({
-    type: 'update_table_order',
-    order: orderToBroadcast,
-  });
+    // Prepare the order for broadcast (items is already a JSON string from DB)
+    const orderToBroadcast = {
+      id: Number(updatedOrder.id),
+      table_number: updatedOrder.table_number,
+      section_id: updatedOrder.section_id,
+      total_amount: updatedOrder.total_amount,
+      payment_method: updatedOrder.payment_method,
+      items: JSON.stringify(updatedOrder.items || '[]'),
+      status: updatedOrder.status,
+    };
 
-  res.json({ message: 'Order updated successfully' });
+    // Broadcast the full order via WebSocket
+    req.wss.broadcast({
+      type: 'update_table_order',
+      order: orderToBroadcast,
+    });
+
+    res.json({ message: 'Order updated successfully' });
+  } catch (error) {
+    console.error('Error updating order:', error);
+    res.status(500).json({ error: 'Failed to update order' });
+  }
 });
-
 // Delete an order
 router.delete("/api/tableorder/:id", authenticateAdmin, async (req, res) => {
   try {
