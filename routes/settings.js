@@ -19,7 +19,6 @@ const upload = multer({
     fileSize: 20 * 1024 * 1024 // Limit file size to 20 MB
   }
 });
-
 router.get('/api/settings', authenticateAdmin, async (req, res) => {
   try {
     const query = 'SELECT * FROM settings LIMIT 1';
@@ -34,11 +33,12 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
         operatingHours: '9 AM - 9 PM',
         upiId: '',
         isOpen: true,
+        gst: 0 // Default GST value
       };
 
       const insertQuery = `
-        INSERT INTO settings (restaurantName, address, phone, email, operatingHours, upiId, isOpen)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO settings (restaurantName, address, phone, email, operatingHours, upiId, isOpen, gst)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const [insertResult] = await req.db.query(insertQuery, [
         defaultSettings.restaurantName,
@@ -47,7 +47,8 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
         defaultSettings.email,
         defaultSettings.operatingHours,
         defaultSettings.upiId,
-        defaultSettings.isOpen
+        defaultSettings.isOpen,
+        defaultSettings.gst
       ]);
 
       defaultSettings.id = insertResult.insertId;
@@ -64,10 +65,10 @@ router.get('/api/settings', authenticateAdmin, async (req, res) => {
 // PUT settings API
 router.put('/api/settings', authenticateAdmin, async (req, res) => {
   try {
-    const { restaurantName, address, phone, email, operatingHours, upiId, isOpen } = req.body;
+    const { restaurantName, address, phone, email, operatingHours, upiId, isOpen, gst } = req.body;
     const query = `
       UPDATE settings
-      SET restaurantName = ?, address = ?, phone = ?, email = ?, operatingHours = ?, upiId = ?, isOpen = ?
+      SET restaurantName = ?, address = ?, phone = ?, email = ?, operatingHours = ?, upiId = ?, isOpen = ?, gst = ?
       WHERE id = 1
     `;
     await req.db.query(query, [
@@ -77,7 +78,8 @@ router.put('/api/settings', authenticateAdmin, async (req, res) => {
       email,
       operatingHours,
       upiId,
-      isOpen
+      isOpen,
+      gst || 0 // Ensure gst is provided, default to 0 if not
     ]);
     res.json({ message: 'Settings updated successfully' });
   } catch (err) {

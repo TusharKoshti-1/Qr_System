@@ -144,6 +144,7 @@ CREATE TABLE `settings` (
   `profile_photo_mime` varchar(255) DEFAULT NULL,
   `profile_photo` varchar(255) DEFAULT NULL,
   `price` decimal(10,1) DEFAULT 2.00,
+  `gst` decimal(10,2) DEFAULT 0.00,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
