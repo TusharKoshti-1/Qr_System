@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 // const mysql = require('mysql2/promise');
 const { pool, masterPool } = require('../db/config');
+const { authenticateAdmin } = require('../middleware/middleware');
 const router = express.Router();
 
 // Initialize admin database with schema.sql
@@ -75,6 +76,67 @@ router.post('/login', async (req, res) => {
     res.json({ token });
   } catch (error) {
     res.status(500).json({ error: 'Login failed', details: error.message });
+  }
+});
+
+router.post('/employee/login', async (req, res) => {
+  const { email, password } = req.body;
+  const { restaurant_id } = req.query;
+
+  try {
+    // 1. Get restaurant database name from master DB
+    const [admin] = await masterPool.query(
+      'SELECT db_name FROM admins WHERE id = ?',
+      [restaurant_id]
+    );
+    if (!admin || admin.length === 0) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
+
+    // 2. Connect to restaurant's database
+    const restaurantDb = await pool.getConnection();
+    await restaurantDb.query(`USE ??`, [admin[0].db_name]);
+
+    const [rows] = await restaurantDb.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (!rows.length) return res.status(404).json({ message: 'Employee not found' });
+    const Admin = rows[0];
+
+    // Verify password
+    const valid = await bcrypt.compare(password, Admin.password);
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+
+    // Generate JWT with database name
+    const token = jwt.sign(
+      { id: admin.id, dbName: admin.db_name },
+      process.env.JWT_SECRET,
+    );
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed', details: error.message });
+  }
+});
+
+
+router.post('/employee/register',authenticateAdmin, async (req, res) => {
+  const { username, email, password } = req.body;
+  try {
+    // const dbName = `admin_${uuidv4().replace(/-/g, '')}`;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Save to master_db.admins
+    await req.db.query(
+      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+      [username, email, hashedPassword]
+    );
+
+    res.status(201).json({ message: 'Employee registered successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
