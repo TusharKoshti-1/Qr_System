@@ -20,8 +20,12 @@ const app = express();
 const server = http.createServer(app);
 
 // Configure CORS
+// const allowedOrigins = [
+//   'https://qr-backend-tusharkoshti-1s-projects.vercel.app'
+// ];
+
 const allowedOrigins = [
-  'https://qr-backend-tusharkoshti-1s-projects.vercel.app','*'
+  '*'
 ];
 
 app.use(cors({ origin: allowedOrigins }));
