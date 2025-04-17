@@ -24,11 +24,10 @@ const server = http.createServer(app);
 //   'https://qr-backend-tusharkoshti-1s-projects.vercel.app'
 // ];
 
-const allowedOrigins = [
-  '*'
-];
 
-app.use(cors({ origin: allowedOrigins }));
+// app.use(cors({ origin: allowedOrigins }));
+
+app.use(cors({ origin: '*' }));
 
 // Create WebSocket server
 const wss = new WebSocket.Server({
