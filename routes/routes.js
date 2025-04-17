@@ -111,7 +111,7 @@ router.post('/employee/login', async (req, res) => {
 
     // Generate JWT with database name
     const token = jwt.sign(
-      { id: admin.id, dbName: admin.db_name },
+      { id: admin[0].id, dbName: admin[0].db_name },
       process.env.JWT_SECRET,
     );
 
