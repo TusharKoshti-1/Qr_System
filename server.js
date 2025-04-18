@@ -14,6 +14,7 @@ const settings = require('./routes/settings');
 const tableRoutes = require('./routes/tables');
 const tableorder = require('./routes/tableorder');
 const charges = require('./routes/chargesapi');
+const employee = require('./routes/employee');
 const visitorInsights = require('./routes/visitorinsight');
 
 const app = express();
@@ -83,6 +84,7 @@ app.use(salesRoutes);
 app.use(visitorInsights);
 app.use(settings);
 app.use(charges);
+app.use(employee);
 app.use(tableRoutes);
 app.use(customer);
 app.use(MenuItems);
