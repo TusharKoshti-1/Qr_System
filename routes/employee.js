@@ -24,7 +24,7 @@ router.delete("/api/employees/:id", authenticateAdmin, async (req, res) => {
   try {
     const employeeId = req.params.id;
     
-    // First verify order exists
+    // First verify employee exists
     const [checkResult] = await req.db.query(
       "SELECT id FROM users WHERE id = ?",
       [employeeId]
@@ -34,9 +34,9 @@ router.delete("/api/employees/:id", authenticateAdmin, async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Delete order from database
+    // Delete employee from database
     const [result] = await req.db.query(
-      "DELETE FROM orders WHERE id = ?",
+      "DELETE FROM users WHERE id = ?",
       [employeeId]
     );
 
